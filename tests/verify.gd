@@ -55,7 +55,7 @@ func _run() -> void:
 	vale.save_path = TEST_SAVE
 	root.add_child(vale)
 	await _ticks(4)
-	_check(vale.camera.current and vale.people.size() == 6, "cena principal, câmera e seis NPCs")
+	_check(vale.camera.current and vale.people.size() == 9, "cena principal, câmera e nove NPCs")
 	vale.simulation.construction.restore({})
 	vale.simulation.clock.elapsed = 2550
 	vale._reset_people()
@@ -85,12 +85,12 @@ func _run() -> void:
 	_check(vale.player.position.x > 17.5, "ponte de pedra atravessável")
 	vale.player.position = Vector3(6.42, 0.10, -13.08)
 	_press(vale, KEY_E)
-	_check(vale.player.parcel.visible, "E recolhe madeira na pilha")
+	_check(vale.player.parcel.visible, "E recolhe material no depósito")
 	vale.player.position = Vector3(9.42, 0.10, -11.15)
 	var before: int = _loads(vale.simulation.construction)
 	_press(vale, KEY_E)
 	_check(not vale.player.parcel.visible and _loads(vale.simulation.construction) == before + 1,
-		"E entrega madeira na margem")
+		"E entrega material na margem")
 	_press(vale, KEY_F5)
 	var saved_progress: Dictionary = vale.simulation.construction.snapshot()
 	vale.player.position = Vector3.ZERO

@@ -49,7 +49,7 @@ func _run() -> void:
 	_check(is_zero_approx(ground.get_shader_parameter("frost")), "chuva de inverno sem geada automática")
 	vale.diorama.weather(3, true, true, 0.5)
 	_check(ground.get_shader_parameter("frost") > 0.0, "geada leve quando a simulação indica neve")
-	_check(vale.ambience.water.stream is AudioStreamWAV and vale.ambience.hammers.size() == 2,
+	_check(vale.ambience.water.stream is AudioStreamWAV and vale.ambience.hammers.size() == 3,
 		"fontes sonoras locais")
 	print("%d verificações de apresentação, %d falhas." % [checks, failed])
 	quit(1 if failed else 0)

@@ -19,6 +19,8 @@ var trunks := CylinderMesh.new()
 var batch_root: Node3D
 var footprints := PackedVector4Array()
 var occluded: Array[Node3D] = []
+var crop_full := Node3D.new()
+var crop_sprouts := Node3D.new()
 
 func _ready() -> void:
 	rng.seed = 92451
@@ -39,7 +41,7 @@ func _ready() -> void:
 	_flush()
 	permanent_bridge = Node3D.new()
 	add_child(permanent_bridge)
-	_bridge(permanent_bridge, 2.0, 3, true)
+	_bridge(permanent_bridge, 2.0, 3, true, 10)
 	project_bridge = Node3D.new()
 	add_child(project_bridge)
 	update_bridge(0)
@@ -323,9 +325,12 @@ func flower(p: Vector3) -> void:
 		piece(leaf, q + Vector3.UP * h, Vector3(0.102, 0.066, 0.102), tint)
 
 func _farm() -> void:
+	add_child(crop_full)
+	add_child(crop_sprouts)
 	for i in 5:
 		var x := -15.5 + i * 1.10
 		paving(Vector3(x, 0, 11.0), Vector2(0.83, 5.0), "garden")
+		batch_root = crop_full
 		for j in 13:
 			var p := Vector3(x, 0.04, 8.8 + j * 0.36)
 			for k in 3:
@@ -333,6 +338,10 @@ func _farm() -> void:
 				piece(leaf, q, Vector3(0.26, 0.25, 0.25), "8da956" if (i + j + k) % 3 else "4f6839")
 			if i % 2 == 0:
 				piece(leaf, p + Vector3.UP * 0.24, Vector3(0.16, 0.14, 0.16), "d1aa60")
+		batch_root = crop_sprouts
+		for j in 13:
+			box(Vector3(x, 0.065, 8.8 + j * 0.36), Vector3(0.065, 0.12, 0.055), "77964e", Vector3(0, 0, 0.31))
+		batch_root = null
 	fence(Vector3(-16.7, 0, 8.0), Vector3(-10.1, 0, 8.0), 5)
 	fence(Vector3(-16.7, 0, 13.9), Vector3(-10.1, 0, 13.9), 5)
 	fence(Vector3(-16.7, 0, 8.0), Vector3(-16.7, 0, 13.9), 5)
@@ -340,6 +349,10 @@ func _farm() -> void:
 	sign_label(Vector3(-10.25, 0.98, 8.15), "HORTA", 0.0058)
 	box(Vector3(-10.25, 0.96, 8.10), Vector3(0.83, 0.28, 0.10), "wood")
 	box(Vector3(-10.25, 0.48, 8.10), Vector3(0.10, 0.96, 0.12), "wood")
+
+func update_crop(phase: int) -> void:
+	crop_full.visible = phase == 4
+	crop_sprouts.visible = phase in [2, 3]
 
 func _forge() -> void:
 	var p := Vector3(-12.1, 0, 3.48)
@@ -443,31 +456,34 @@ func barrel(p: Vector3) -> void:
 		cylinder(p + Vector3.UP * y, 0.285, 0.053, "iron", 10)
 
 func fence(a: Vector3, b: Vector3, spans: int) -> void:
+	var extent := (b - a).abs()
+	collider((a + b) * 0.5 + Vector3.UP * 0.37, Vector3(extent.x + 0.11, 0.74, extent.z + 0.11), self)
 	for i in spans + 1:
 		var p := a.lerp(b, float(i) / spans)
 		box(p + Vector3.UP * 0.40, Vector3(0.14, 0.8, 0.15), "wood")
 	for y in [0.30, 0.57]:
 		beam(a + Vector3.UP * y, b + Vector3.UP * y, 0.086, "board")
 
-func update_bridge(stage: int) -> void:
+func update_bridge(stage: int, phase := 0) -> void:
 	for child in project_bridge.get_children():
 		project_bridge.remove_child(child)
 		child.queue_free()
-	_bridge(project_bridge, -12.0, stage, false)
+	_bridge(project_bridge, -12.0, stage, false, phase)
 
-func _bridge(root: Node3D, z: float, stage: int, stone: bool) -> void:
+func _bridge(root: Node3D, z: float, stage: int, stone: bool, phase: int) -> void:
 	batch_root = root
-	for x in [10.26, 15.74]:
-		box(Vector3(x, -0.27, z), Vector3(0.76, 0.77, 2.85), "stone")
-	if stone or stage >= 1:
+	if stone or phase >= 4:
+		for x in [10.26, 15.74]:
+			box(Vector3(x, -0.27, z), Vector3(0.76, 0.77, 2.85), "stone" if stone or phase >= 6 else "earth")
+	if stone or phase >= 6:
 		for x in [10.55, 12.14, 13.86, 15.45]:
 			for offset in [-0.95, 0.95]:
 				box(Vector3(x, -0.39, z + offset), Vector3(0.18, 1.47, 0.19), "board" if not stone else "stone")
-	if stage >= 2:
+	if stone or phase >= 7:
 		for offset in [-0.82, 0.82]:
 			box(Vector3(13, -0.10, z + offset), Vector3(6.50, 0.24, 0.18), "wood")
-	if stone or stage >= 3:
-		for i in 27:
+	if stone or phase >= 8:
+		for i in (27 if stone or phase >= 9 else 17):
 			box(Vector3(9.88 + 0.24 * i, 0.01, z), Vector3(0.23, 0.14, 2.53), "stone" if stone else "oak")
 		for side in [-1, 1]:
 			var rz: float = z + side * 1.24
@@ -475,17 +491,22 @@ func _bridge(root: Node3D, z: float, stage: int, stone: bool) -> void:
 			box(Vector3(13, 0.27, rz), Vector3(6.64, 0.13, 0.13), "stone" if stone else "board")
 			for x in [9.73, 10.81, 11.9, 13, 14.1, 15.19, 16.27]:
 				box(Vector3(x, 0.36, rz), Vector3(0.21, 0.80, 0.21), "stone" if stone else "wood")
-			collider(Vector3(13, 0.42, rz), Vector3(6.74, 1.1, 0.17), root)
-	else:
+			if stone or stage >= 3:
+				collider(Vector3(13, 0.42, rz), Vector3(6.74, 1.1, 0.17), root)
+	if not stone and stage < 3:
 		collider(Vector3(10.0, 0.60, z), Vector3(0.21, 1.7, 2.55), root)
 		collider(Vector3(16.0, 0.60, z), Vector3(0.21, 1.7, 2.55), root)
+		if phase >= 3:
+			box(Vector3(8.84, 0.17, z + 1.45), Vector3(0.46, 0.32, 0.50), "board")
 		for side in [-1, 1]:
 			var rz: float = z + side * 1.64
 			for x in [8.99, 10.45, 15.55, 17.01]:
-				box(Vector3(x, 0.87, rz), Vector3(0.16, 2.31, 0.16), "board")
-			for x in [9.71, 16.29]:
-				box(Vector3(x, 1.15, rz), Vector3(1.60, 0.13, 0.14), "oak", Vector3(0, 0, side * 0.65))
-				box(Vector3(x, 1.83, rz), Vector3(1.76, 0.12, 0.79), "oak")
+				var height := 2.31 if phase >= 5 else 0.74
+				box(Vector3(x, height * 0.37, rz), Vector3(0.16, height, 0.16), "board")
+			if phase >= 5:
+				for x in [9.71, 16.29]:
+					box(Vector3(x, 1.15, rz), Vector3(1.60, 0.13, 0.14), "oak", Vector3(0, 0, side * 0.65))
+					box(Vector3(x, 1.83, rz), Vector3(1.76, 0.12, 0.79), "oak")
 		for i in stage + 1:
 			box(Vector3(8.86, 0.16 + i * 0.10, z - 0.95), Vector3(1.56, 0.11, 0.28), "oak")
 	batch_root = null

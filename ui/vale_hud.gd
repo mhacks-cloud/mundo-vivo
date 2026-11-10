@@ -18,6 +18,12 @@ var toast_panel: PanelContainer
 var hint_panel: PanelContainer
 var toast_time := 0.0
 var help_panel: PanelContainer
+var inspection: PanelContainer
+var inspection_title: Label
+var inspection_subtitle: Label
+var inspection_body: Label
+var portrait: TextureRect
+var inspect_time := 0.0
 
 func _ready() -> void:
 	layer = 5
@@ -35,12 +41,13 @@ func _ready() -> void:
 	time = _label(calendar, "", 23, CREAM, true)
 	weather = _label(calendar, "", 12, SILVER)
 
-	var footer := _panel(canvas, Control.PRESET_BOTTOM_LEFT, Vector4(22, -137, 392, -62), 0.82)
+	var footer := _panel(canvas, Control.PRESET_BOTTOM_LEFT, Vector4(22, -156, 392, -62), 0.82)
 	help_panel = footer.get_parent()
 	help_panel.hide()
 	_label(footer, "WASD  Mover    ·    Q / R  Girar    ·    Roda  Zoom", 13, CREAM)
 	_label(footer, "F5  Salvar    ·    F9  Carregar    ·    T  Avançar 3 h", 12, SILVER)
-	_label(footer, "E  Interagir  ·  F6  Gráficos  ·  F7  Efeitos", 12, GOLD)
+	_label(footer, "E  Interagir  ·  I  Carga  ·  J  Diário", 12, GOLD)
+	_label(footer, "F6  Gráficos  ·  F7  Efeitos  ·  F10  HUD", 12, SILVER)
 	var options := _panel(canvas, Control.PRESET_BOTTOM_LEFT, Vector4(22, -54, 247, -20), 0.74)
 	prefs = _label(options, "", 11, GOLD)
 	var work := _panel(canvas, Control.PRESET_BOTTOM_RIGHT, Vector4(-248, -86, -22, -20), 0.78)
@@ -66,6 +73,38 @@ func _ready() -> void:
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast_panel.hide()
+	var card := _panel(canvas, Control.PRESET_CENTER_RIGHT, Vector4(-377, -110, -22, 100), 0.96)
+	inspection = card.get_parent()
+	var headline := HBoxContainer.new()
+	headline.add_theme_constant_override("separation", 12)
+	card.add_child(headline)
+	portrait = TextureRect.new()
+	portrait.custom_minimum_size = Vector2(68, 68)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	headline.add_child(portrait)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	headline.add_child(copy)
+	inspection_title = _label(copy, "", 22, CREAM, true)
+	inspection_subtitle = _label(copy, "", 12, GOLD)
+	inspection_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var divider := HSeparator.new()
+	card.add_child(divider)
+	inspection_body = _label(card, "", 13, SILVER)
+	inspection_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	inspection.hide()
+
+func inspect(title: String, subtitle: String, body: String, resident := "") -> void:
+	inspection_title.text = title
+	inspection_subtitle.text = subtitle
+	inspection_body.text = body
+	var path := "res://assets/portraits/%s.png" % resident
+	portrait.texture = load(path) if not resident.is_empty() and ResourceLoader.exists(path) else null
+	portrait.visible = portrait.texture != null
+	inspection.show()
+	inspect_time = 12.0
 
 func update_clock(clock: WorldClock, season: String, sample: Dictionary) -> void:
 	date.text = "%s  /  DIA %02d  /  ANO %d" % [season.to_upper(), clock.day_of_year(), clock.year()]
@@ -77,7 +116,7 @@ func update_bridge(construction: ConstructionManager) -> void:
 	fill.value = [0, 2, 5, 8][construction.stage] + construction.delivered
 
 func update_options(quality: String, focus: bool) -> void:
-	prefs.text = "F1  Ajuda  ·  %s  ·  F10  HUD" % quality
+	prefs.text = "F1  Ajuda  ·  J  Diário  ·  %s" % quality
 	prefs.tooltip_text = "Efeitos ligados" if focus else "Efeitos desligados"
 
 func toggle_help() -> void:
@@ -92,6 +131,10 @@ func show_message(value: String, duration := 4.7) -> void:
 	toast_time = duration
 
 func _process(delta: float) -> void:
+	if inspect_time > 0:
+		inspect_time -= delta
+		if inspect_time <= 0.0:
+			inspection.hide()
 	if toast_time > 0:
 		toast_time -= delta
 		if toast_time <= 0:

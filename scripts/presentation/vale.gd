@@ -3,7 +3,14 @@ extends Node3D
 const SPAWN := Vector3(0.85, 0.10, 4.28)
 const QUALITY := ["Baixos", "Médios", "Altos"]
 var simulation := WorldSimulation.new()
-var residents := NPCManager.new(simulation.construction)
+var residents := NPCManager.new(simulation)
+var navigation := VillageNavigation.new()
+var paths: Array[Dictionary] = []
+var nav_dirty := true
+var offline_limit := 0.0
+var fauna := ValeFauna.new()
+var forge_sparks := GPUParticles3D.new()
+var social_poll := 0.0
 var interactions := InteractionSystem.new()
 var saves := SaveManager.new()
 var save_path := SaveManager.PATH
@@ -40,6 +47,7 @@ func _ready() -> void:
 	simulation.climate.latitude = region.latitude
 	simulation.climate.altitude = region.altitude
 	simulation.climate.biome = region.bioma
+	offline_limit = clampf(float(region.get("limite_offline_minutos", 0.0)) * 60.0, 0.0, 7200.0)
 	add_child(diorama)
 	add_child(camera)
 	camera.current = true
@@ -49,6 +57,8 @@ func _ready() -> void:
 	_setup_overlays()
 	add_child(hud)
 	add_child(ambience)
+	add_child(fauna)
+	_setup_sparks()
 	simulation.construction.changed.connect(_bridge_changed)
 	player.configure(Color("417b89"), Color("dfaf62"), 0, true)
 	player.position = SPAWN
@@ -70,22 +80,23 @@ func _ready() -> void:
 	for plan in residents.plans:
 		var npc := PixelActor.new()
 		npc.name = plan.name
-		npc.configure(Color(plan.palette), Color(plan.hair), plan.hat, false)
+		npc.configure(Color(plan.palette), Color(plan.hair), plan.hat, false, plan.role)
 		add_child(npc)
 		people.append(npc)
+		paths.append({})
 		var person := npc
 		var resident: Dictionary = plan
 		interactions.register("Conversar com " + plan.name, Vector3.ZERO,
 			func() -> void: _talk(resident), 1.65)
 		interactions.targets.back()["actor"] = person
 	_register_landmarks()
-	_load(false)
-	_reset_people()
+	if not _load(false):
+		_reset_people()
 	_camera_frame(1.0)
 	_refresh_quality()
 	_refresh_environment(0.16)
 	hud.update_bridge(simulation.construction)
-	hud.show_message("Siga pela praça. Os carpinteiros trabalham rio acima.", 5.5)
+	hud.show_message("A vila está em movimento. J abre o diário do vale.", 5.5)
 
 func _process(delta: float) -> void:
 	simulation.tick(delta)
@@ -107,28 +118,78 @@ func _physics_process(delta: float) -> void:
 	player.move_and_slide()
 	player.pose(player.get_real_velocity(), right, sprite_light)
 	hidden_marker.visible = diorama.camera_visibility(camera.position, player.position + Vector3.UP * 0.83)
+	if nav_dirty:
+		navigation.rebuild(diorama, simulation.construction.complete())
+		nav_dirty = false
 	for i in people.size():
-		var npc := people[i]
-		var plan := residents.plans[i]
-		interactions.targets[i].position = npc.position
-		var hour := simulation.clock.hour()
-		plan.wait = maxf(0.0, plan.wait - delta)
-		var offset := residents.goal(plan, hour) - npc.position
-		npc.velocity = Vector3.ZERO
-		if plan.wait <= 0.0:
-			if offset.length_squared() <= 0.12 * 0.12:
-				if residents.arrived(plan, hour):
-					simulation.command(&"deliver_bridge_material")
-			else:
-				npc.velocity = offset.normalized() * minf(1.65, offset.length() / delta)
-		npc.move_and_slide()
-		npc.parcel.visible = plan.carry
-		npc.pose(npc.get_real_velocity(), right, sprite_light, plan.building)
+		_move_resident(i, right, delta)
+	social_poll += delta
+	if social_poll >= 0.5:
+		social_poll = 0.0
+		residents.social()
+	var smith_working: bool = residents.plans[3].building
+	forge_sparks.emitting = smith_working and quality > 0
+	fauna.update_animals(player.position, right, sprite_light, delta, ambience)
 	ambience.listen(player, people, simulation.clock.hour(), raining, delta)
 
+func _move_resident(index: int, right: Vector3, delta: float) -> void:
+	var npc := people[index]
+	var plan := residents.plans[index]
+	var cache := paths[index]
+	var distant := npc.position.distance_squared_to(player.position) > 27.0 * 27.0
+	var step: float = float(cache.get("step", 0.0)) + delta
+	cache.step = step
+	if distant and step < 0.105:
+		return
+	cache.step = 0.0
+	cache.retry = maxf(0.0, float(cache.get("retry", 0.0)) - step)
+	var goal := residents.goal(plan, raining, step)
+	var movement := Vector3.ZERO
+	if plan.talk > 0.0:
+		plan.state = "INTERACTING"
+	else:
+		if cache.get("goal") != goal or cache.get("revision") != navigation.revision or (cache.get("failed", false) and cache.retry <= 0.0):
+			cache.goal = goal
+			cache.revision = navigation.revision
+			cache.route = navigation.find(npc.position, goal)
+			cache.cursor = 0
+			cache.failed = cache.route.is_empty()
+			cache.retry = 0.70
+		var route: PackedVector3Array = cache.route
+		if not route.is_empty():
+			var cursor: int = cache.cursor
+			if cursor < route.size() and npc.position.distance_squared_to(route[cursor]) <= 0.11 * 0.11:
+				cursor += 1
+				cache.cursor = cursor
+			if cursor >= route.size():
+				residents.arrived(plan)
+			else:
+				residents.moving(plan)
+				if plan.worker and plan.carry:
+					simulation.construction.logistics(2)
+				var offset := route[cursor] - npc.position
+				var origin := npc.position
+				var hit := npc.move_and_collide(offset.limit_length((2.03 if plan.role == "carrier" else 1.86) * step))
+				movement = (npc.position - origin) / step
+				if hit != null and movement.length_squared() < 0.02 and cache.retry <= 0.0:
+					cache.failed = true
+					cache.retry = 0.22
+		else:
+			residents.moving(plan)
+	plan.position = npc.position
+	interactions.targets[index].position = npc.position
+	npc.set_cargo(simulation.economy.stock.first(plan.id))
+	npc.pose(movement, right, sprite_light, plan.building, plan.state)
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("interact"):
+		player.gesture()
 		interactions.interact(player.position)
+	elif event.is_action_pressed("satchel"):
+		hud.inspect("Viajante", "Carga em trânsito", simulation.economy.stock.summary("player"), "player")
+	elif event.is_action_pressed("ui_cancel") and hud.inspection.visible:
+		hud.inspection.hide()
+	elif event.is_action_pressed("journal"):
+		hud.inspect("Diário do Vale", "Ocorrências registradas", simulation.economy.journal.recent(5))
 	elif event.is_action_pressed("save_game"):
 		_save()
 	elif event.is_action_pressed("load_game"):
@@ -157,7 +218,7 @@ func _configure_inputs() -> void:
 	var bindings := {"left": KEY_A, "right": KEY_D, "up": KEY_W, "down": KEY_S,
 		"interact": KEY_E, "orbit_left": KEY_Q, "orbit_right": KEY_R, "save_game": KEY_F5,
 		"quality": KEY_F6, "focus": KEY_F7, "load_game": KEY_F9, "skip_time": KEY_T,
-		"toggle_hud": KEY_F10, "help": KEY_F1}
+		"toggle_hud": KEY_F10, "help": KEY_F1, "journal": KEY_J, "satchel": KEY_I}
 	for action in bindings:
 		if InputMap.has_action(action):
 			continue
@@ -234,6 +295,12 @@ func _refresh_environment(delta: float) -> void:
 	var wet: bool = climate.weather == "Chuva" or climate.weather == "Neve"
 	var mist: bool = climate.weather == "Névoa"
 	raining = wet
+	if climate.weather == "Chuva":
+		simulation.economy.rain(simulation.clock)
+	var crop := simulation.economy.crop
+	if crop == 3 and simulation.clock.elapsed >= simulation.economy.crop_due:
+		crop = 4
+	diorama.update_crop(crop)
 	wet_blend = lerpf(wet_blend, 1.0 if wet else 0.0, clampf(delta * 1.9, 0.0, 1.0))
 	var season_index := simulation.climate.seasons.index(simulation.clock.total_day(), simulation.climate.latitude)
 	diorama.weather(season_index, wet, climate.weather == "Neve", light)
@@ -278,88 +345,159 @@ func _refresh_quality() -> void:
 	lens.set_shader_parameter("strength", 1.02 if quality == 2 else 0.67)
 	hud.update_options(QUALITY[quality], focus)
 
+func _setup_sparks() -> void:
+	var material := ParticleProcessMaterial.new()
+	material.direction = Vector3.UP
+	material.spread = 34.0
+	material.gravity = Vector3(0, -5.0, 0)
+	material.initial_velocity_min = 0.85
+	material.initial_velocity_max = 2.2
+	var ember := StandardMaterial3D.new()
+	ember.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ember.albedo_color = Color("ffc07c")
+	ember.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.035, 0.035)
+	quad.material = ember
+	forge_sparks.amount = 14
+	forge_sparks.lifetime = 0.58
+	forge_sparks.position = Vector3(-11.36, 0.78, 4.77)
+	forge_sparks.process_material = material
+	forge_sparks.draw_pass_1 = quad
+	forge_sparks.emitting = false
+	add_child(forge_sparks)
+
 func _register_landmarks() -> void:
 	interactions.register("Poço dos Fundadores", Vector3(0.8, 0.1, -0.8),
 		func() -> void: hud.show_message("A água do Amieiro é fria mesmo no auge do verão."), 2.6)
 	interactions.register("Taberna da Raposa Dourada", Vector3(-6.7, 0.10, -3.95),
-		func() -> void: hud.show_message("A Raposa Dourada · pão de centeio e sidra da colheita."))
+		func() -> void: hud.inspect("Raposa Dourada", "Refeições · 12:00–14:00",
+			"Pão de centeio e sidra da colheita. Os moradores fazem aqui a pausa do meio-dia."))
 	interactions.register("Forja do Amieiro", Vector3(-11.1, 0.10, 5.25),
-		func() -> void: hud.show_message("Baltasar mantém as ferramentas da obra afiadas."))
+		func() -> void: _stock_card("Forja do Amieiro", VillageEconomy.FORGE_HOURS, "forge"))
 	interactions.register("Horta de Teresa", Vector3(-10.22, 0.10, 8.7),
-		func() -> void: hud.show_message("As primeiras mudas dividem os canteiros com as ervas da taberna."))
+		func() -> void: _stock_card("Horta de Teresa", "06:00–18:00 · " + VillageEconomy.CROP_NAMES[simulation.economy.crop], "farm"))
 	interactions.register("Ruína da Serra", Vector3(21, 0.10, -18.4),
 		func() -> void: hud.show_message("Uma corrente de ar frio escapa da entrada. O portal está selado."), 2.9)
 	interactions.register("Canteiro · entregar uma carga", Vector3(9.1, 0.10, -12.0),
 		func() -> void:
-			if simulation.construction.complete():
-				hud.show_message("A ponte nova está aberta. Pode atravessar.")
-			elif not player.parcel.visible:
-				hud.show_message("Pegue madeira na pilha, junto ao caminho a oeste.")
-			elif simulation.command(&"deliver_bridge_material"):
-				player.parcel.hide()
-				hud.show_message("Carga entregue à obra. " + simulation.construction.status()), 1.72)
-	bridge_target = interactions.targets.back()
-	interactions.register("Pilha de madeira · pegar uma carga", Vector3(6.4, 0.10, -12.8),
-		func() -> void:
-			if simulation.construction.complete():
-				hud.show_message("A madeira que sobrou fica para o próximo reparo.")
+			var bridge := simulation.construction
+			if bridge.complete():
+				_bridge_card()
+			elif not simulation.economy.stock.first("player").is_empty() and simulation.unload_build("player"):
+				player.set_cargo("")
+				simulation.work_bridge()
+				hud.show_message("Carga descarregada · " + bridge.status())
+			elif bridge.phase() == 9 and simulation.work_bridge():
+				hud.show_message("Inspeção concluída. Travessia aberta.")
 			else:
-				player.parcel.show()
-				hud.show_message("Leve a madeira até a margem da ponte nova."), 1.8)
-	interactions.register("Obra da ponte", Vector3(17.35, 0.10, -12.0),
-		func() -> void: hud.show_message(simulation.construction.status()))
+				_bridge_card(), 1.72)
+	bridge_target = interactions.targets.back()
+	interactions.register("Depósito · recolher carga", Vector3(6.4, 0.10, -12.8),
+		func() -> void:
+			if simulation.reserve_build("player"):
+				simulation.construction.logistics(2)
+				var item := simulation.economy.stock.first("player")
+				player.set_cargo(item)
+				hud.show_message("Leve %s ao canteiro, na margem." % item)
+			else:
+				_stock_card("Depósito da Ponte", "Estoque público", "depot"), 1.8)
+	interactions.register("Obra da ponte", Vector3(17.35, 0.10, -12.0), _bridge_card)
+	interactions.register("Banca de Lina", Vector3(-7.12, 0.10, -0.15),
+		func() -> void: _stock_card("Banca de Lina", VillageEconomy.MARKET_HOURS, "market"), 1.65)
+	interactions.register("Quadro de estoques", Vector3(3.8, 0.10, -3.72),
+		func() -> void:
+			var store := simulation.economy.stock
+			hud.inspect("Estoques do vale", "Quadro público",
+				"Horta · %s\nForja · %s\nBanca · %s\nDepósito · %s" % [
+				store.summary("farm"), store.summary("forge"), store.summary("market"), store.summary("depot")]), 1.65)
+
+func _stock_card(title: String, hours: String, place: String) -> void:
+	var hour := simulation.clock.hour()
+	var start := 6.0 if place == "farm" else 7.0
+	var finish := 19.0 if place == "market" else 18.0
+	var status := "Aberto" if hour >= start and hour < finish else "Fechado"
+	var subtitle := hours if place == "depot" else "%s · %s" % [status, hours]
+	hud.inspect(title, subtitle, simulation.economy.stock.summary(place))
+
+func _bridge_card() -> void:
+	var bridge := simulation.construction
+	var required := "Travessia aberta." if bridge.complete() else "Próximo recurso: " + bridge.required_item() + "."
+	hud.inspect("Ponte Nova", bridge.status(), required + "\nCanteiro · " + simulation.economy.stock.summary("site"))
 
 func _talk(plan: Dictionary) -> void:
 	var person := people[residents.plans.find(plan)]
 	person.face(player.position - person.position)
 	player.face(person.position - player.position)
-	plan.wait = maxf(plan.wait, 1.3)
-	var text_value: String
-	if plan.worker:
-		text_value = "A última tábua já foi assentada." if simulation.construction.complete() else "A madeira é do bosque. Ajude a levar uma carga à margem."
-	elif residents.working(plan, simulation.clock.hour()):
-		text_value = {"Lina": "Passe na Raposa quando a luz baixar.", "Baltasar": "As ferramentas da ponte saíram desta forja.",
-			"Teresa": "A terra ainda guarda o frio da madrugada.", "Nilo": "Depois da ponte de pedra, siga o caminho para o norte."}[plan.name]
-	else:
-		text_value = "Amanhã nos vemos de novo na vila."
-	hud.show_message("%s, %s  ·  %s" % [plan.name, plan.job, text_value])
+	plan.talk = 2.7
+	var topic := String(plan.detail)
+	if plan.worker and not simulation.construction.complete():
+		topic = simulation.construction.phase_name() + " · Próximo recurso: " + simulation.construction.required_item() + "."
+	elif raining:
+		topic = "A correnteza está mais forte. Vou esperar a chuva passar." if plan.role != "guard" else "Hoje reforço a vigia perto do rio."
+	var hours := "%02d:%02d–%02d:%02d" % [int(plan.start), int(fposmod(plan.start, 1.0) * 60.0),
+		int(plan.end), int(fposmod(plan.end, 1.0) * 60.0)]
+	var home: Vector3 = plan.home
+	var residence := "Margem leste" if home.x > 16 else "Casas do sul" if home.z > 8 else "Núcleo da vila"
+	hud.inspect(plan.name, "%s  ·  %s" % [plan.job.capitalize(), NPCManager.STATES[plan.state]],
+		"%s\nExpediente %s · %s\nFome %d%% · Cansaço %d%%" % [
+			topic, hours, residence, roundi(plan.hunger * 100.0), roundi(plan.fatigue * 100.0)], plan.id)
 
 func _reset_people() -> void:
 	residents.reset()
+	for plan in residents.plans:
+		if residents.working(plan, simulation.clock.hour()) and plan.role in ["builder", "farm", "forge", "market"]:
+			plan.position = plan.route[0]
+	_apply_people()
+
+func _apply_people() -> void:
 	for i in people.size():
 		var plan := residents.plans[i]
-		people[i].position = plan.route[0] if residents.working(plan, simulation.clock.hour()) else plan.home
-		if not residents.working(plan, simulation.clock.hour()):
-			plan.exit_index = plan.exit.size()
-			plan.returning = true
+		people[i].position = plan.position
+		people[i].set_cargo(simulation.economy.stock.first(plan.id))
 		interactions.targets[i].position = people[i].position
+		paths[i].clear()
 
 func _bridge_changed() -> void:
-	if simulation.construction.complete():
-		player.parcel.hide()
-	if not diorama.has_meta("bridge_stage") or diorama.get_meta("bridge_stage") != simulation.construction.stage:
-		diorama.set_meta("bridge_stage", simulation.construction.stage)
-		diorama.update_bridge(simulation.construction.stage)
-	bridge_target.label = "Ponte nova" if simulation.construction.complete() else "Canteiro · entregar uma carga"
-	hud.update_bridge(simulation.construction)
+	var bridge := simulation.construction
+	if bridge.complete():
+		player.set_cargo("")
+	if diorama.get_meta("bridge_phase", -1) != bridge.phase():
+		var was_open: bool = diorama.get_meta("bridge_open", false)
+		diorama.set_meta("bridge_open", bridge.complete())
+		diorama.set_meta("bridge_phase", bridge.phase())
+		diorama.update_bridge(bridge.stage, bridge.phase())
+		if was_open != bridge.complete():
+			nav_dirty = true
+	bridge_target.label = "Ponte nova" if bridge.complete() else "Canteiro · entregar uma carga"
+	hud.update_bridge(bridge)
 
 func _save() -> void:
 	var state := simulation.snapshot()
-	state["carrying"] = player.parcel.visible
+	state["residents"] = residents.snapshot()
+	state["written_unix"] = Time.get_unix_time_from_system()
 	state["player"] = [player.position.x, player.position.y, player.position.z]
 	var result := saves.write_state(state, save_path)
 	hud.show_message("Vale salvo." if result == OK else "Falha ao salvar · " + error_string(result))
 
-func _load(show_feedback: bool) -> void:
+func _load(show_feedback: bool) -> bool:
 	var state := saves.read_state(save_path)
 	if state.is_empty():
 		if show_feedback:
 			hud.show_message("Nenhum salvamento válido para carregar.")
-		return
+		return false
 	simulation.restore(state)
-	player.parcel.visible = state.get("carrying", false) == true and not simulation.construction.complete()
+	var stamp: Variant = state.get("written_unix")
+	if not show_feedback and (stamp is int or stamp is float) and is_finite(float(stamp)) and stamp > 0:
+		simulation.tick(clampf(Time.get_unix_time_from_system() - float(stamp), 0.0, offline_limit))
+	player.set_cargo(simulation.economy.stock.first("player"))
 	player.position = Vector3(state.player[0], 0.10, state.player[2])
 	follow = player.position + Vector3.UP * 0.65
-	if show_feedback:
+	if state.get("residents") is Dictionary:
+		residents.restore(state.residents)
+		_apply_people()
+	else:
 		_reset_people()
+	if show_feedback:
 		hud.show_message("Vale restaurado · " + simulation.clock.time_text())
+	return true

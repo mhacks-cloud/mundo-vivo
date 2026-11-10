@@ -7,7 +7,7 @@ func write_state(state: Dictionary, path: String = PATH) -> Error:
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if file == null:
 		return FileAccess.get_open_error()
-	file.store_string(JSON.stringify({"version": 1, "state": state}, "\t"))
+	file.store_string(JSON.stringify({"version": 2, "state": state}, "\t"))
 	file.flush()
 	var error := file.get_error()
 	file.close()
@@ -19,7 +19,10 @@ func read_state(path: String = PATH) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
 	var document: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
-	if not document is Dictionary or document.get("version") != 1:
+	if not document is Dictionary:
+		return {}
+	var version: Variant = document.get("version")
+	if version != 1 and version != 2:
 		return {}
 	var state: Variant = document.get("state")
 	if not state is Dictionary or not _number(state.get("elapsed")) or float(state.elapsed) < 0:

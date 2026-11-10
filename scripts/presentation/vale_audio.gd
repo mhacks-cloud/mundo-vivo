@@ -8,10 +8,12 @@ var water := AudioStreamPlayer3D.new()
 var village := AudioStreamPlayer3D.new()
 var birds := AudioStreamPlayer3D.new()
 var steps := AudioStreamPlayer3D.new()
+var animal := AudioStreamPlayer3D.new()
+var animal_streams: Dictionary = {}
 var hammers: Array[AudioStreamPlayer3D] = []
 var bird_timer := 3.0
 var step_distance := 0.0
-var hammer_timer := [0.0, 0.0]
+var hammer_timer := [0.0, 0.0, 0.0]
 
 func _ready() -> void:
 	random.seed = 40571
@@ -22,8 +24,11 @@ func _ready() -> void:
 	_place(village, _synthesize("hearth", 3.4, true), Vector3(-8, 0.3, -4), -27, 15)
 	_place(birds, _synthesize("birds", 1.6), Vector3(-7, 4, -8), -19, 27)
 	_place(steps, _synthesize("step", 0.19), Vector3.ZERO, -14, 18)
+	for species in ["galinha", "vaca", "ovelha", "pássaro", "gato", "cão"]:
+		animal_streams[species] = _synthesize(species, 0.64)
+	_place(animal, animal_streams["galinha"], Vector3.ZERO, -17, 18)
 	var hit := _synthesize("hammer", 0.29)
-	for i in 2:
+	for i in 3:
 		var sound := AudioStreamPlayer3D.new()
 		_place(sound, hit, Vector3.ZERO, -14, 23)
 		hammers.append(sound)
@@ -51,13 +56,21 @@ func listen(player: PixelActor, people: Array[PixelActor], hour: float, wet: boo
 		steps.pitch_scale = random.randf_range(0.89, 1.13)
 		steps.play()
 	for i in hammers.size():
-		var actor := people[i]
+		var actor := people[i if i < 2 else 3]
 		hammer_timer[i] = maxf(0.0, hammer_timer[i] - delta)
 		if actor.visual.animation == &"work" and actor.visual.frame == 2 and hammer_timer[i] == 0.0:
 			hammers[i].position = actor.position
 			hammers[i].pitch_scale = random.randf_range(0.86, 1.11)
 			hammers[i].play()
 			hammer_timer[i] = 0.38
+
+func animal_cue(kind: String, p: Vector3) -> void:
+	if DisplayServer.get_name() == "headless" or not animal_streams.has(kind):
+		return
+	animal.stream = animal_streams[kind]
+	animal.position = p
+	animal.pitch_scale = random.randf_range(0.87, 1.11)
+	animal.play()
 
 func _place(source: AudioStreamPlayer3D, stream: AudioStreamWAV, p: Vector3, volume: float, reach: float) -> void:
 	source.stream = stream
@@ -99,6 +112,19 @@ func _synthesize(kind: String, duration: float, loop := false) -> AudioStreamWAV
 			"hammer":
 				value = (0.45 * sin(TAU * 670.0 * t) + 0.18 * sin(TAU * 1163.0 * t)
 					+ noise * exp(-t * 91.0) * 0.56) * exp(-t * 19.0)
+			"galinha":
+				var beat := fposmod(t, 0.18)
+				value = (sin(TAU * (770.0 * beat - 1400.0 * beat * beat)) * 0.50 + fast * 0.19) * exp(-beat * 27.0)
+			"vaca", "ovelha", "gato":
+				var root := 112.0 if kind == "vaca" else 245.0 if kind == "ovelha" else 404.0
+				var phase := TAU * (root * t + 46.0 * t * t) + 1.4 * sin(t * 10.0)
+				value = (sin(phase) * 0.38 + sin(phase * 2.0) * 0.18 + fast * 0.06) * sin(PI * t / duration)
+			"cão":
+				var bark := fposmod(t, 0.29)
+				value = (sin(TAU * (188.0 * bark - 115.0 * bark * bark)) * 0.46 + fast * 0.42) * exp(-bark * 22.0)
+			"pássaro":
+				var beat := fposmod(t, 0.23)
+				value = sin(TAU * (1600.0 * beat + 2400.0 * beat * beat)) * sin(PI * clampf(beat / 0.12, 0, 1)) * 0.44
 		var envelope := minf(1.0, minf(t * 150.0, (duration - t) * 105.0))
 		bytes.encode_s16(i * 2, roundi(clampf(value * envelope, -1, 1) * 30000.0))
 	var stream := AudioStreamWAV.new()

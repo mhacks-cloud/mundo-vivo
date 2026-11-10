@@ -8,8 +8,12 @@ var views: Array[SpriteFrames] = []
 var view_index := 0
 var facing := Vector3.BACK
 var turn_timer := 0.0
+var gesture_timer := 0.0
+var profession := "player"
+var cargo := ""
 
-func configure(primary: Color, hair: Color, hat: int, is_player: bool) -> void:
+func configure(primary: Color, hair: Color, hat: int, is_player: bool, role := "player") -> void:
+	profession = role
 	collision_layer = 2
 	collision_mask = 1
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
@@ -63,8 +67,24 @@ func face(toward: Vector3) -> void:
 		facing = toward.normalized()
 		turn_timer = 1.3
 
-func pose(direction: Vector3, camera_right: Vector3, lighting: Color, building := false) -> void:
+func gesture() -> void:
+	gesture_timer = 0.63
+
+func set_cargo(item: String) -> void:
+	parcel.visible = not item.is_empty()
+	if cargo == item:
+		return
+	cargo = item
+	var colors := {"madeira": "98704a", "pedra": "90948a", "ferro": "697c83",
+		"ferramentas": "73787e", "trigo": "d5aa50", "alimentos": "ba805d"}
+	var material := parcel.material_override as StandardMaterial3D
+	material.albedo_color = Color(colors.get(item, "bb8950"))
+	var mesh := parcel.mesh as BoxMesh
+	mesh.size = Vector3(0.39, 0.30, 0.28) if item != "madeira" else Vector3(0.55, 0.21, 0.27)
+
+func pose(direction: Vector3, camera_right: Vector3, lighting: Color, building := false, state := "") -> void:
 	turn_timer = maxf(0.0, turn_timer - get_physics_process_delta_time())
+	gesture_timer = maxf(0.0, gesture_timer - get_physics_process_delta_time())
 	var moving := direction.length_squared() > 0.035
 	if moving and turn_timer == 0.0:
 		facing = direction.normalized()
@@ -72,7 +92,17 @@ func pose(direction: Vector3, camera_right: Vector3, lighting: Color, building :
 	var forward := facing.dot(camera_right.cross(Vector3.UP))
 	var selected := 2 if absf(lateral) > 0.66 else 1 if forward < 0.0 else 0
 	visual.flip_h = selected == 2 and lateral < 0.0
-	var animation := &"work" if building else &"walk" if moving else &"idle"
+	var animation := &"idle"
+	if building or (state == "WORKING" and profession in ["farm", "market"]):
+		animation = &"work"
+	elif moving:
+		animation = &"carry" if parcel.visible else &"walk"
+	elif state == "INTERACTING" or gesture_timer > 0.0:
+		animation = &"talk"
+	elif state == "SLEEPING":
+		animation = &"sleep"
+	elif state in ["RESTING", "EATING"]:
+		animation = &"sit"
 	if selected != view_index:
 		var frame := visual.frame
 		var progress := visual.frame_progress
@@ -85,15 +115,16 @@ func pose(direction: Vector3, camera_right: Vector3, lighting: Color, building :
 	elif visual.animation != animation:
 		visual.play(animation)
 	visual.modulate = lighting
-	parcel.position.x = -0.35 if visual.flip_h else 0.35
+	parcel.position.x = -0.30 if visual.flip_h else 0.30
+	parcel.position.y = 0.70 if animation != &"carry" or visual.frame % 2 == 0 else 0.73
 
 func _frames(primary: Color, hair: Color, hat: int, view: int) -> SpriteFrames:
 	var frames := SpriteFrames.new()
 	frames.remove_animation("default")
-	for animation in [&"idle", &"walk", &"work"]:
+	for animation in [&"idle", &"walk", &"work", &"carry", &"talk", &"sit", &"sleep"]:
 		frames.add_animation(animation)
-		frames.set_animation_speed(animation, 8.3 if animation == &"walk" else 6.0 if animation == &"work" else 2.1)
-		for i in (6 if animation == &"walk" else 4):
+		frames.set_animation_speed(animation, 8.3 if animation in [&"walk", &"carry"] else 6.0 if animation in [&"work", &"talk"] else 2.1)
+		for i in (6 if animation in [&"walk", &"carry"] else 4):
 			frames.add_frame(animation, _draw(primary, hair, hat, i, animation, view))
 	return frames
 
@@ -109,10 +140,22 @@ func _draw(coat: Color, hair: Color, hat: int, frame: int, animation: StringName
 	var deep := coat.darkened(0.45)
 	var gleam := coat.lightened(0.35)
 	var cycle := [0, 2, 1, 0, -2, -1]
-	var stride: int = cycle[frame] if animation == &"walk" else 0
+	var stride: int = cycle[frame] if animation in [&"walk", &"carry"] else 0
 	var bob := -1 if frame in [1, 4] else 0
 	if animation == &"work":
 		bob = 2 if frame == 2 else 0
+	if animation == &"sleep":
+		_paint(img, 4, 34, 25, 3, ink)
+		_paint(img, 6, 31, 20, 4, deep)
+		_paint(img, 7, 30, 16, 4, coat)
+		_paint(img, 20, 28, 7, 6, hair.darkened(0.23))
+		_paint(img, 23, 29, 5, 4, skin)
+		_paint(img, 25, 31, 2, 1, ink)
+		if frame % 2 == 0:
+			_paint(img, 28, 25, 2, 1, linen)
+		return ImageTexture.create_from_image(img)
+	if animation == &"sit":
+		bob += 6
 	var side := view == 2
 	var back := view == 1
 	var a := 10 + stride
@@ -173,7 +216,7 @@ func _draw(coat: Color, hair: Color, hat: int, frame: int, animation: StringName
 		_paint(img, 13, 13 + bob, 7, 4, hair)
 		_paint(img, 14, 15 + bob, 2, 3, hair.lightened(0.18))
 		_paint(img, 14, 18 + bob, 5, 1, skin)
-	if hat != 0:
+	if hat in [1, 2]:
 		var brim := gleam if hat == 1 else gold
 		var crown := deep if hat == 1 else hide
 		_paint(img, 11, 6 + bob, 11, 4, ink)
@@ -181,11 +224,34 @@ func _draw(coat: Color, hair: Color, hat: int, frame: int, animation: StringName
 		_paint(img, 13, 6 + bob, 6, 1, brim)
 		_paint(img, 9, 9 + bob, 15, 2, ink)
 		_paint(img, 10, 9 + bob, 13, 1, brim)
+	if hat == 3:
+		_paint(img, 10, 7 + bob, 13, 4, Color("646e78"))
+		_paint(img, 12, 5 + bob, 9, 3, Color("a1adb3"))
+		_paint(img, 15 if not side else 21, 10 + bob, 2, 5, Color("849398"))
+		_paint(img, 7, 24 + bob, 4, 7, Color("a09c82"))
+		_paint(img, 8, 25 + bob, 2, 4, deep)
+	elif hat == 4 or profession == "carrier":
+		_paint(img, 10, 7 + bob, 3, 12, deep)
+		_paint(img, 11, 6 + bob, 11, 3, gleam)
+		_paint(img, 10, 19 + bob, 6, 3, deep)
+	if profession == "forge" and not back:
+		_paint(img, 14, 16 + bob, 7, 3, hair)
+		_paint(img, 16, 18 + bob, 4, 2, hair.darkened(0.25))
+	if profession == "farm":
+		_paint(img, 7, 10 + bob, 18, 2, gold)
+		_paint(img, 12, 22 + bob, 8, 6, linen.darkened(0.25))
+	if animation == &"carry":
+		_paint(img, 17, 24 + bob, 8, 2, deep)
+		_paint(img, 23, 24 + bob, 3, 2, skin_light)
+	elif animation == &"talk":
+		var hand_y := 24 - 2 * (frame % 2)
+		_paint(img, 23, hand_y, 3, 5, deep)
+		_paint(img, 24, hand_y - 2, 3, 3, skin_light)
 	if animation == &"work":
 		var tool_y := 23 if frame == 2 else 13
 		_paint(img, 25, tool_y, 2, 8, hide)
 		_paint(img, 23, tool_y, 6, 3, Color("56676a"))
-		_paint(img, 23, tool_y, 6, 1, Color("a6b3a3"))
+		_paint(img, 23, tool_y, 6, 1, Color("a6b3a3") if profession != "farm" else Color("a7a085"))
 		_paint(img, 24, tool_y + 6, 3, 2, skin_light)
 	return ImageTexture.create_from_image(img)
 
