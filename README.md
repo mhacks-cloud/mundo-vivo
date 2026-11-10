@@ -1,4 +1,4 @@
-# Mundo Vivo 3.0 · A Vila Ganha Vida
+# Mundo Vivo 4.0 · Sua Vida Começa Aqui
 
 **Vale do Amieiro** é o primeiro mapa jogável de um sandbox medieval offline. A vila é construída em 3D, com texturas pixeladas, personagens animados em 2D e iluminação que acompanha o relógio do vale.
 
@@ -16,8 +16,12 @@ Validado no Windows com Godot 4.7.2 e renderizador Compatibility/OpenGL. O proje
 | **Q / R** | Girar a câmera |
 | **Roda do mouse** | Aproximar ou afastar |
 | **E** | Interagir com o ponto ou morador indicado |
-| **I / J** | Consultar a carga do viajante / abrir o Diário do Vale |
-| **Esc** | Fechar a ficha aberta |
+| **B / C** | Inventário / ficha, equipamentos e registros |
+| **H / M** | Construção / contratos |
+| **I / J** | Consultar a carga da ponte / abrir o Diário do Vale |
+| **F / Shift** | Técnica da classe no campo de treino / defesa do guerreiro |
+| **Z / clique esquerdo** | Girar / confirmar a peça no modo de construção |
+| **Esc** | Fechar a ficha ou cancelar a peça |
 | **F5 / F9** dentro do jogo | Salvar / carregar |
 | **F6** | Alternar gráficos baixos, médios e altos |
 | **F7** | Alternar profundidade de campo, gradação de cor e vinheta |
@@ -32,6 +36,15 @@ A segunda ponte fica rio acima, na margem da vila. Use **E** no depósito para r
 Para acompanhar a economia, visite a horta atrás da forja e a banca junto à Raposa Dourada. O quadro público fica perto do banco a nordeste do poço. O diário (**J**) registra as colheitas, entregas, compras, trabalhos, cumprimentos e ocorrências da vila.
 
 Um dia dura **120 minutos reais**, uma hora dura **5 minutos reais**, o ano tem **96 dias** e cada estação dura **24 dias**. **T** avança três horas do relógio. Na inicialização, a diferença desde o último salvamento adianta somente o calendário, com limite padrão de 30 minutos reais configurável em `data/regiao.json`. Use `0` em `limite_offline_minutos` para desativar esse avanço. **F9** restaura exatamente a hora gravada.
+### Sua primeira casa
+
+1. Crie o personagem, escolha o traje, a classe permanente e a Coroa do Amieiro. Escolha entre Horta Velha e Prado da Ponte.
+2. Siga o caminho de terra ao sul da praça até os lotes delimitados. Abra **H** junto ao seu terreno e escolha uma peça ou monte a casa inicial por 20 madeiras e 4 pedras. Fique fora das quatro células centrais para montar a casa.
+3. Escolha canteiro, cerca, piso, parede, porta, janela, telhado ou mobília. A prévia verde confirma o encaixe. **Z** gira e clique esquerdo instala. **Esc** cancela. O telhado some enquanto o personagem está sobre o piso, para facilitar o uso do interior.
+4. Use **E** na banca de Lina para negociar das 07:00 às 19:00. A alquimia fica junto à taberna, a forja a oeste da praça e a marcenaria a noroeste do poço. **M** consulta contratos e o quadro público a nordeste do poço recebe as entregas.
+5. Para as classes de aventura, atravesse a ponte de pedra e vá ao sul pela margem leste. **F** acerta o alvo adequado à sua técnica. O alvo de guarda contra-ataca de perto. Recupere vida e mana longe da área ou use consumíveis.
+
+O jogo tem um personagem por arquivo de salvamento. Em uma partida anterior à 4.0, o cadastro acrescenta personagem e lote ao mundo já salvo. A primeira gravação preserva o arquivo anterior em `vale_do_amieiro.json.pre-4.bak`. Use **F5 dentro do jogo** antes de fechar e **F9** para retomar manualmente.
 ## Estrutura
 
 | Pasta | Responsabilidade |
@@ -71,6 +84,7 @@ godot --headless --path . --quit-after 100
 godot --headless --path . --fixed-fps 60 --script res://tests/verify.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_presentation.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_life.gd
+godot --headless --path . --fixed-fps 60 --script res://tests/verify_player_life.gd
 ```
 
 ### Limites do protótipo
@@ -138,7 +152,7 @@ O ajuste final da lente acrescentou amostras diretas do quadro para tornar o des
 
 O projeto local está sem remoto configurado. A busca na integração GitHub retornou zero repositórios instalados para `mundo-vivo`. A CLI `gh` estava indisponível e a integração acessível não oferecia criação de repositório.
 
-## Relatório de implementação · 3.0
+## Histórico da versão 3.0 · A Vila Ganha Vida
 
 | Área | Implementação |
 | --- | --- |
@@ -164,3 +178,30 @@ A versão 3.0 mantém o layout e o renderizador Compatibility da 2.0. Os sprites
 > A square production UI atlas for a medieval pixel-art RPG, exact 3 by 3 equal cells, each cell a unique distinct portrait on a solid very dark forest green background #18221c. No frames, no text, no labels, no cell separators. Face and shoulders entirely inside each cell with ample padding. Hand-placed 16-bit SNES pixel art with visibly stepped hard pixel clusters, warm light and deep colored shadows, original designs, serious warm human expressions. Row 1 left to right: young blonde player with blue teal wool traveler coat and gold clasp; dark brown-haired male carpenter Ivo in rust brown cap and leather tool vest; brown-haired female carpenter Mara in ochre headscarf and russet sleeves. Row 2 left to right: brunette merchant Lina in plum linen with ivory collar; blacksmith Baltasar with dark graying beard and slate blue work shirt and leather apron; auburn-haired farmer Teresa in green dress and ocher straw hat. Row 3 left to right: bearded transporter Nilo with sea green coat, travel hood and shoulder strap; young tan male guard Afonso with small iron nasal helmet and maroon gambeson; older gray-haired resident Beatriz in warm olive hood. View three-quarter bust, all heads around the same relative height. Original classic RPG illustration, no copied assets, game portrait texture sheet only.
 
 > Single square game UI portrait of Branca, an original medieval night watchwoman around 30 with dark brown bob hair partly visible under a riveted steel nasal helmet, violet slate gambeson, dark brown belt, simple iron lantern clasp, tan complexion. Face and shoulders with margin, three quarter bust facing right, original classic 16-bit RPG hand-placed pixel art, hard blocky edge pixels, deep forest green solid backdrop (#18221c), late afternoon warm key light and deep colored shadows, no text or borders. Fit an existing atlas of pixel portrait icons featuring detailed shoulder clothing.
+
+## Relatório de implementação · 4.0
+
+| Área | Implementação |
+| --- | --- |
+| Personagem | Cadastro com nome validado, prévia do sprite da 3.0, cinco cores de roupa, quatro tons de cabelo, classe e nação gravadas. |
+| Nações | Coroa do Amieiro jogável e Brumária e Salmar cadastradas para expansão. Rei exclusivamente NPC, regiões, lotes, tesouro, imposto, caixa de mercado e reputação. |
+| Casa | Dois lotes exclusivos de 7,5 × 7,5 m. Fundação, piso, paredes, duas portas, duas janelas, dois telhados, cerca, banco, canteiro e flores. Encaixes por célula e borda, prévia, rotação, cancelamento, colisões e consumo de materiais. A casa inicial usa 20 módulos. |
+| Inventário | Bolsa de 85 kg, baú de 260 kg, pilhas, durabilidade e quatro slots de equipamento. Coleta, compra, venda, uso, equipar, guardar, retirar e descarte. |
+| Economia pessoal | Ouro e caixa regional finitos, imposto arredondado em ouro, preços distintos de compra e venda, serviços de reparo, cinco contratos de entrega única, reputação e registros. Vendas de trigo e entregas abastecem os estoques da vila. |
+| Agricultor | Planta, rega e colhe trigo ou ervas no lote. A chuva pode regar. No galinheiro, alimenta com trigo e recolhe ovos depois de um intervalo. |
+| Médico | Processa ervas e frascos em remédio e poção de mana. O remédio recupera vida e a poção restaura mana. |
+| Ferreiro | Forja espada, enxada e armadura com exigência de nível. Repara com ferro. Outras classes podem pagar pelo serviço. |
+| Artesão | Produz bancos e encaixes usados nas portas e janelas especiais da casa. |
+| Aventureiros | Guerreiro usa espada e defesa. Arqueiro dispara flechas e registra rastros. Mago lança projéteis com mana. Curandeiro restaura a aliada ferida. Concluir exercícios e registrar descobertas concede XP. |
+| Persistência | O formato 3 carrega os formatos 1 e 2. Salva perfil, lote, módulos, plantas, baú, inventário, ouro, equipamentos, XP, contratos, mercado e estado de treino, além do mundo 3.0. |
+
+### Arquivos e verificação
+
+- `life_catalog.gd`, `life_inventory.gd`, `player_life.gd`, `homestead.gd` e `training_session.gd` concentram o catálogo, o inventário, a progressão, a economia, as regras de terreno e o combate.
+- `vale_life.gd`, `vale_housing.gd` e `vale_life_ui.gd` ligam essas regras aos controles, à geometria e à interface. `pixel_actor.gd` reutiliza os desenhos e as animações existentes para a prévia e as cores do traje.
+- A suíte `verify_player_life.gd` percorre cadastro, aquisição, plantio, casa, colisões, baú, comércio, treino, migração e reabertura. A versão 4.0 reúne 45 verificações novas e 74 regressões. As três suítes da 3.0 continuam cobrindo os NPCs, a ponte, o clima, a câmera e a movimentação. Elas desativam o cadastro apenas nas instâncias de teste de regressão.
+- A tag `seguranca/antes-sua-vida` preserva `d6bcff7`. A busca na integração GitHub não retornou um repositório correspondente e o projeto local está sem remoto. A publicação requer o URL do repositório existente e credenciais Git autorizadas. Com ambos, execute `git remote add origin URL_DO_REPOSITORIO` e `git push -u origin main` na pasta do projeto com histórico.
+
+### Escopo atual
+
+O combate é de treino PvE, com alvos fixos e uma aliada. Criaturas livres, expedições, escolta de caravanas, especializações, troca de nação e multiplayer ficam para versões futuras. Os lotes são privados e a construção é aditiva. As portas instaladas são passagens abertas. O calendário pode avançar ao reabrir, conforme a configuração do Vale, enquanto o inventário e as transações voltam ao estado gravado.
