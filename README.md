@@ -1,4 +1,4 @@
-# Mundo Vivo
+# Mundo Vivo 3.0 · A Vila Ganha Vida
 
 **Vale do Amieiro** é o primeiro mapa jogável de um sandbox medieval offline. A vila é construída em 3D, com texturas pixeladas, personagens animados em 2D e iluminação que acompanha o relógio do vale.
 
@@ -16,6 +16,8 @@ Validado no Windows com Godot 4.7.2 e renderizador Compatibility/OpenGL. O proje
 | **Q / R** | Girar a câmera |
 | **Roda do mouse** | Aproximar ou afastar |
 | **E** | Interagir com o ponto ou morador indicado |
+| **I / J** | Consultar a carga do viajante / abrir o Diário do Vale |
+| **Esc** | Fechar a ficha aberta |
 | **F5 / F9** dentro do jogo | Salvar / carregar |
 | **F6** | Alternar gráficos baixos, médios e altos |
 | **F7** | Alternar profundidade de campo, gradação de cor e vinheta |
@@ -25,22 +27,23 @@ Validado no Windows com Godot 4.7.2 e renderizador Compatibility/OpenGL. O proje
 
 Saia do caminho de terra para chegar à praça. A **Raposa Dourada** fica ao norte do poço e a **Forja do Amieiro** a oeste. A horta fica atrás da forja. Atravesse a ponte de pedra e siga a trilha para o norte para chegar à entrada da Ruína da Serra.
 
-A segunda ponte fica rio acima, na margem da vila. Durante o dia, Ivo e Mara levam madeira até o canteiro e trabalham por alguns segundos a cada carga. Para ajudar, pressione **E** na pilha de madeira e leve a carga até a margem. A obra passa por estacas, longarinas e tabuleiro. A passagem abre após oito entregas. **F5** guarda o calendário, a posição, a carga do jogador e o progresso da obra em `user://vale_do_amieiro.json`. O último estado válido é lido ao iniciar.
+A segunda ponte fica rio acima, na margem da vila. Use **E** no depósito para recolher o recurso disponível e **E** no canteiro para descarregar. Ivo e Mara também buscam as cargas e montam a estrutura. A travessia abre após oito instalações e a inspeção. **F5** guarda o estado em `user://vale_do_amieiro.json`. O último salvamento é lido ao iniciar.
 
-Um dia do vale dura **120 minutos reais** com o jogo aberto. O ano tem **96 dias** e cada estação dura **24 dias**. A tecla **T** avança o relógio imediatamente. Os moradores retomam a rotina do novo horário e continuam percorrendo os trajetos em tempo real.
+Para acompanhar a economia, visite a horta atrás da forja e a banca junto à Raposa Dourada. O quadro público fica perto do banco a nordeste do poço. O diário (**J**) registra as colheitas, entregas, compras, trabalhos, cumprimentos e ocorrências da vila.
 
+Um dia dura **120 minutos reais**, uma hora dura **5 minutos reais**, o ano tem **96 dias** e cada estação dura **24 dias**. **T** avança três horas do relógio. Na inicialização, a diferença desde o último salvamento adianta somente o calendário, com limite padrão de 30 minutos reais configurável em `data/regiao.json`. Use `0` em `limite_offline_minutos` para desativar esse avanço. **F9** restaura exatamente a hora gravada.
 ## Estrutura
 
 | Pasta | Responsabilidade |
 | --- | --- |
 | `scenes/` | Cena de entrada do Vale do Amieiro |
 | `scripts/presentation/` | Montagem do diorama, câmera, iluminação e atores em `AnimatedSprite3D` |
-| `scripts/world/` | `WorldClock`, `SeasonManager`, `RegionalClimate`, `NPCManager`, `ConstructionManager` e `InteractionSystem` |
+| `scripts/world/` | Calendário, clima, rotinas, navegação, construção, estoques, economia e diário de eventos |
 | `scripts/persistence/` | `SaveManager` e formato local de salvamento |
 | `assets/`, `shaders/` e `ui/` | Texturas, rio, precipitação, lente e interface |
 | `data/` e `tests/` | Perfil geográfico e verificações automatizadas |
 
-`WorldSimulation` expõe `tick`, `command`, `snapshot` e `restore` para o estado de calendário e construção. A cena local encaminha entregas de madeira como comandos e atualiza a geometria da obra ao receber a mudança de etapa. Essa fronteira permite mover o estado da obra para uma futura autoridade de rede. Movimento, colisão e execução dos trajetos dos moradores ainda rodam localmente.
+`WorldSimulation` coordena calendário, economia e obra. `NPCManager` guarda horários, destino, estado e necessidades. A cena transforma destinos em movimento físico usando `VillageNavigation`, que usa [AStarGrid2D](https://docs.godotengine.org/en/stable/classes/class_astargrid2d.html). Os estoques, as transações e as fases da obra estão separados da renderização para uma futura autoridade de rede.
 
 ## Checklist
 
@@ -48,8 +51,9 @@ Um dia do vale dura **120 minutos reais** com o jogo aberto. O ano tem **96 dias
 
 - [x] Vila 3D explorável, com casas enxaimel, poço, taberna, forja, canteiros, mercados, vegetação, rio, duas pontes, bosque e entrada da ruína.
 - [x] Jogador em pixel art com repouso e caminhada, colisão, interação e câmera de seguimento com zoom e rotação.
-- [x] Seis moradores com rotas, diálogos e horários de trabalho e descanso. Os dois carpinteiros carregam madeira e usam animação de martelar.
-- [x] Obra com andaimes, três fases construtivas, colaboração do jogador e abertura física da passagem.
+- [x] Nove moradores com profissão, casa, destinos, necessidades, turnos, diálogos e reação à chuva. Doze animais de seis espécies com locomoção, animação e sons.
+- [x] Obra com pedido, separação, transporte, descarga, preparação da margem, andaimes, fundações, estrutura, acabamentos, inspeção e abertura da travessia.
+- [x] Economia com estoques persistentes, lavoura em fases, ferramentas forjadas, carga física, compras simuladas e diário local.
 - [x] Ciclo diurno e noturno, calendário e clima calculado por latitude, hemisfério, altitude e bioma. Céu limpo, névoa, chuva e neve fazem parte do modelo.
 - [x] Três perfis gráficos, profundidade de campo estilizada e salvamento local.
 
@@ -66,6 +70,7 @@ godot --headless --path . --editor --import
 godot --headless --path . --quit-after 100
 godot --headless --path . --fixed-fps 60 --script res://tests/verify.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_presentation.gd
+godot --headless --path . --fixed-fps 60 --script res://tests/verify_life.gd
 ```
 
 ### Limites do protótipo
@@ -73,7 +78,7 @@ godot --headless --path . --fixed-fps 60 --script res://tests/verify_presentatio
 - A visita à ruína termina na entrada selada. As casas, a taberna e a forja são exploráveis pelo exterior.
 - Há um único perfil geográfico ativo no mapa. O cálculo de clima aceita outros perfis. As estações mudam a paleta do terreno e das plantas. O acúmulo de neve é representado apenas por uma cobertura leve quando o clima indica neve.
 - A iluminação usa luz ambiente global, sol, sombras e fontes locais. A oclusão de contato das fundações é calculada pelo material do solo. Iluminação indireta com rebotes físicos fica pendente. A lente reconstrói a profundidade a partir do buffer do Compatibility e mantém o foco no personagem.
-- As rotas dos moradores usam pontos de passagem predefinidos. A posição exata deles é reconstruída ao carregar a partir do horário e da obra.
+- Os destinos das rotinas são pontos de serviço definidos na vila. A navegação resolve os trechos entre eles. Repouso e abrigo são representados junto às residências e aos estabelecimentos, cujos interiores ficam para outra etapa.
 - Multiplayer e servidor autoritativo ficam para uma etapa posterior. A entrega é o projeto Godot executável pelo editor. O rio usa um reflexo de céu aproximado pelo ângulo de visão. Os sons são sintetizados para o protótipo.
 
 ## Recursos visuais
@@ -89,7 +94,7 @@ Prompt do atlas
 O projeto de trabalho preserva o commit inicial `db18fee`. A tag `seguranca/antes-hd2d` aponta para a versão anterior. A atualização tem commit local na mesma branch. Para publicar a versão local em um repositório privado novo, a partir da pasta com o histórico Git e com a CLI autenticada, execute `gh repo create mundo-vivo --private --source=. --remote=origin --push`.
 
 
-## Atualização HD-2D
+## Histórico da versão 2.0 · Atualização HD-2D
 
 - `scripts/presentation/diorama.gd` e `palette.gd` acrescentam módulos de fachada, sacadas, toldos, carroça, vasos e detalhes de margem. Os mesmos pontos de passagem, construções e rotas do Vale continuam em uso.
 - `scripts/presentation/vale_foliage.gd` e `shaders/foliage.gdshader` agrupam camadas de folhas, pinheiros, arbustos e gramíneas em MultiMesh. O vento move as pontas e a câmera abre uma área de visibilidade na copa. Fachadas que cortam a linha entre câmera e jogador são ocultadas temporariamente, mantendo suas colisões.
@@ -119,7 +124,7 @@ Prompt do terreno
 
 > Original square 2x2 grid of seamless medieval landscape game terrain textures, exact equal quadrants with no border gaps labels or markings. Orthographic top down fully flat surfaces. Upper left rich green old meadow short mossy grass ground cover, tiny dark olive and golden blades and small leaf litter patches, muted textured woodland ground; upper right worn amber umber dirt road made of granular soil with little gravel; bottom left tightly packed irregular rounded gray slate cobblestones (about 14 stones across the quadrant) with dirt joints, weathered moss hints; bottom right dark stone and root riverbank earth with subtle moss details. Hand-painted pixel art with visible pixel clusters, crisp 16-bit fantasy medieval HD-2D diorama material, muted natural greens warm earth and warm gray, contrast but neutral even lighting and no perspective. All four quadrants filled edge to edge as textures.
 
-## Medição e validação
+## Medição da versão 2.0
 
 Medição local a 1280 × 720, Godot 4.7.2, Compatibility/OpenGL, RTX 3050 Laptop 6 GB, VSync desligado. Foram amostrados 90 quadros por perfil com a câmera voltada para a praça, após aquecimento. Os números representam uma amostra curta nesta máquina.
 
@@ -132,3 +137,30 @@ Medição local a 1280 × 720, Godot 4.7.2, Compatibility/OpenGL, RTX 3050 Lapto
 O ajuste final da lente acrescentou amostras diretas do quadro para tornar o desfoque perceptível no OpenGL. As duas pontes também foram agrupadas por material. O Godot emitiu um aviso de acesso ao repositório de certificados do Windows neste ambiente. A importação, as capturas e os testes offline foram concluídos.
 
 O projeto local está sem remoto configurado. A busca na integração GitHub retornou zero repositórios instalados para `mundo-vivo`. A CLI `gh` estava indisponível e a integração acessível não oferecia criação de repositório.
+
+## Relatório de implementação · 3.0
+
+| Área | Implementação |
+| --- | --- |
+| Horta | Teresa prepara, planta, rega ou aproveita a chuva, cuida dos brotos e colhe. A colheita fica no inventário de Teresa até o depósito. Os canteiros mostram terra, brotos ou plantas maduras. |
+| Transporte | Nilo recolhe trigo na horta e descarrega na banca. Também entrega ferro e madeira à forja conforme a necessidade e leva ferramentas ao depósito. A inauguração habilita a travessia nova para as rotas. |
+| Comércio e forja | Lina converte trigo em alimentos. Compras de moradores reduzem o estoque e aumentam a demanda da horta. Baltasar consome ferro e madeira para forjar ferramentas. Os painéis indicam horários e estoques. |
+| Rotinas | Cada morador tem horário, residência, local de trabalho, estado, destino, fome e cansaço. Os guardas alternam turnos e reforçam a margem na chuva. Há pausas, refeições, descanso, sono e cumprimentos entre moradores. |
+| Ponte | As cargas são reservadas no depósito, transportadas, descarregadas e consumidas nas instalações. A geometria mostra o progresso. A inspeção é obrigatória e persistente. Ao inaugurar, a colisão abre e a malha de navegação é reconstruída. |
+| Fauna | Galinhas ciscam, vacas e ovelhas pastam, pássaros pousam e voam, o gato repousa e o cão ronda. Os doze animais têm limites locais, colisão e sons sintetizados por espécie. |
+| Salvamento | O formato 2 carrega o formato 1. Persiste relógio, ponte, posição e carga do viajante, moradores e destinos, estoques, canteiros e os últimos 64 eventos. A carga em trânsito fica em um único inventário. |
+| Desempenho | A navegação é recalculada ao mudar o destino ou abrir a ponte. A movimentação distante usa passos maiores com colisão, a fauna usa atualizações escalonadas e encontros sociais são verificados a cada meio segundo. |
+
+A versão 3.0 mantém o layout e o renderizador Compatibility da 2.0. Os sprites animados em cena são originais e desenhados pelo código. Os retratos das fichas são dez PNGs de 128 × 128 em `assets/portraits/`. O atlas de nove retratos e o retrato individual de Branca foram produzidos com ImageGen integrado, recortados e redimensionados para a interface. As novas faíscas de forja usam partículas e os novos sons são sintetizados pelo jogo.
+
+- **Arquivos principais.** `npc_manager.gd`, `village_navigation.gd`, `village_inventory.gd`, `village_economy.gd`, `village_journal.gd`, `world_simulation.gd` e `construction_manager.gd` implementam a simulação. `vale.gd`, `diorama.gd`, `pixel_actor.gd`, `vale_fauna.gd`, `vale_audio.gd` e `vale_hud.gd` cuidam da apresentação e da interação.
+- **Verificação.** As 46 verificações da versão 2.0 passaram antes das mudanças. A versão 3.0 passa nas suítes de 31, 15 e 28 verificações. Duas asserções anteriores foram atualizadas para o elenco de nove moradores e as três fontes de marteladas. A nova suíte percorre a economia na cena real, testa clima, fauna e a nova rota e recarrega duas vezes um salvamento com carga em trânsito.
+- **Correções durante os testes.** A leitura do cabeçalho passou a aceitar as versões após a conversão numérica do JSON. A navegação passou a conferir a folga das quinas. A inspeção ganhou duração própria após um teste detectar que entregas simultâneas podiam antecipar a abertura.
+- **Limites.** O comércio ocorre entre NPCs. A guarda reage a riscos climáticos, com combate pendente. A simulação em tempo fechado adianta o calendário sem sintetizar entregas ou compras. Os dados locais já estão separados da cena, com servidor autoritativo, comércio entre jogadores e sincronização de rede ainda pendentes.
+- **GitHub.** A tag `seguranca/antes-vila-viva` preserva o commit `0ac00d6`. O repositório local está sem remoto. A integração autenticada não encontrou repositório instalado correspondente a `mundo-vivo`, e a CLI `gh` estava indisponível.
+
+### Prompts dos retratos
+
+> A square production UI atlas for a medieval pixel-art RPG, exact 3 by 3 equal cells, each cell a unique distinct portrait on a solid very dark forest green background #18221c. No frames, no text, no labels, no cell separators. Face and shoulders entirely inside each cell with ample padding. Hand-placed 16-bit SNES pixel art with visibly stepped hard pixel clusters, warm light and deep colored shadows, original designs, serious warm human expressions. Row 1 left to right: young blonde player with blue teal wool traveler coat and gold clasp; dark brown-haired male carpenter Ivo in rust brown cap and leather tool vest; brown-haired female carpenter Mara in ochre headscarf and russet sleeves. Row 2 left to right: brunette merchant Lina in plum linen with ivory collar; blacksmith Baltasar with dark graying beard and slate blue work shirt and leather apron; auburn-haired farmer Teresa in green dress and ocher straw hat. Row 3 left to right: bearded transporter Nilo with sea green coat, travel hood and shoulder strap; young tan male guard Afonso with small iron nasal helmet and maroon gambeson; older gray-haired resident Beatriz in warm olive hood. View three-quarter bust, all heads around the same relative height. Original classic RPG illustration, no copied assets, game portrait texture sheet only.
+
+> Single square game UI portrait of Branca, an original medieval night watchwoman around 30 with dark brown bob hair partly visible under a riveted steel nasal helmet, violet slate gambeson, dark brown belt, simple iron lantern clasp, tan complexion. Face and shoulders with margin, three quarter bust facing right, original classic 16-bit RPG hand-placed pixel art, hard blocky edge pixels, deep forest green solid backdrop (#18221c), late afternoon warm key light and deep colored shadows, no text or borders. Fit an existing atlas of pixel portrait icons featuring detailed shoulder clothing.
