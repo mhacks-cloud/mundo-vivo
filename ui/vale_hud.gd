@@ -17,6 +17,7 @@ var fill: ProgressBar
 var toast_panel: PanelContainer
 var hint_panel: PanelContainer
 var toast_time := 0.0
+var help_panel: PanelContainer
 
 func _ready() -> void:
 	layer = 5
@@ -26,21 +27,24 @@ func _ready() -> void:
 	add_child(canvas)
 	canvas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var identity := _panel(canvas, Control.PRESET_TOP_LEFT, Vector4(26, 24, 322, 136), 0.92)
-	_label(identity, "M U N D O   V I V O    /    0 1", 12, GOLD)
-	_label(identity, "Vale do Amieiro", 34, CREAM, true)
-	_label(identity, "VILA DO RIO  ·  CRÔNICAS DO VALE", 10, SILVER)
-	var calendar := _panel(canvas, Control.PRESET_TOP_RIGHT, Vector4(-260, 24, -26, 140), 0.92)
+	var identity := _panel(canvas, Control.PRESET_TOP_LEFT, Vector4(22, 20, 224, 81), 0.78)
+	_label(identity, "M U N D O   V I V O", 10, GOLD)
+	_label(identity, "Vale do Amieiro", 24, CREAM, true)
+	var calendar := _panel(canvas, Control.PRESET_TOP_RIGHT, Vector4(-218, 20, -22, 98), 0.78)
 	date = _label(calendar, "", 12, GOLD)
-	time = _label(calendar, "", 30, CREAM, true)
+	time = _label(calendar, "", 23, CREAM, true)
 	weather = _label(calendar, "", 12, SILVER)
 
-	var footer := _panel(canvas, Control.PRESET_BOTTOM_LEFT, Vector4(26, -114, 479, -24), 0.89)
+	var footer := _panel(canvas, Control.PRESET_BOTTOM_LEFT, Vector4(22, -137, 392, -62), 0.82)
+	help_panel = footer.get_parent()
+	help_panel.hide()
 	_label(footer, "WASD  Mover    ·    Q / R  Girar    ·    Roda  Zoom", 13, CREAM)
 	_label(footer, "F5  Salvar    ·    F9  Carregar    ·    T  Avançar 3 h", 12, SILVER)
-	prefs = _label(footer, "", 11, GOLD)
-	var work := _panel(canvas, Control.PRESET_BOTTOM_RIGHT, Vector4(-316, -114, -26, -24), 0.90)
-	_label(work, "O B R A   P Ú B L I C A   /   P O N T E   N O V A", 10, GOLD)
+	_label(footer, "E  Interagir  ·  F6  Gráficos  ·  F7  Efeitos", 12, GOLD)
+	var options := _panel(canvas, Control.PRESET_BOTTOM_LEFT, Vector4(22, -54, 247, -20), 0.74)
+	prefs = _label(options, "", 11, GOLD)
+	var work := _panel(canvas, Control.PRESET_BOTTOM_RIGHT, Vector4(-248, -86, -22, -20), 0.78)
+	_label(work, "P O N T E   N O V A", 10, GOLD)
 	bridge = _label(work, "", 15, CREAM, true)
 	fill = ProgressBar.new()
 	fill.max_value = 8
@@ -51,12 +55,12 @@ func _ready() -> void:
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	work.add_child(fill)
 
-	var prompt_box := _panel(canvas, Control.PRESET_CENTER_BOTTOM, Vector4(-190, -176, 190, -130), 0.94)
+	var prompt_box := _panel(canvas, Control.PRESET_CENTER_BOTTOM, Vector4(-169, -67, 169, -25), 0.84)
 	hint_panel = prompt_box.get_parent()
 	hint = _label(prompt_box, "", 15, CREAM)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_panel.hide()
-	var message_box := _panel(canvas, Control.PRESET_CENTER_BOTTOM, Vector4(-300, -228, 300, -188), 0.96)
+	var message_box := _panel(canvas, Control.PRESET_CENTER_BOTTOM, Vector4(-270, -124, 270, -78), 0.86)
 	toast_panel = message_box.get_parent()
 	toast_label = _label(message_box, "", 15, CREAM, true)
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -73,9 +77,11 @@ func update_bridge(construction: ConstructionManager) -> void:
 	fill.value = [0, 2, 5, 8][construction.stage] + construction.delivered
 
 func update_options(quality: String, focus: bool) -> void:
-	prefs.text = "F6  Gráficos %s    ·    F7  Desfoque %s    ·    E  Interagir" % [
-		quality, "ligado" if focus else "desligado"]
+	prefs.text = "F1  Ajuda  ·  %s  ·  F10  HUD" % quality
+	prefs.tooltip_text = "Efeitos ligados" if focus else "Efeitos desligados"
 
+func toggle_help() -> void:
+	help_panel.visible = not help_panel.visible
 func prompt(value: String) -> void:
 	hint_panel.visible = not value.is_empty()
 	hint.text = "E    ·    " + value
@@ -102,9 +108,9 @@ func _panel(canvas: Control, preset: int, offsets: Vector4, opacity: float) -> V
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var panel_style := _style(Color(0.073, 0.086, 0.070, opacity), Color("8f7953"))
 	panel_style.content_margin_left = 15
-	panel_style.content_margin_top = 10
+	panel_style.content_margin_top = 6
 	panel_style.content_margin_right = 15
-	panel_style.content_margin_bottom = 10
+	panel_style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", panel_style)
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 3)

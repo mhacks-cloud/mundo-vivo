@@ -12,10 +12,13 @@ func _init() -> void:
 	make("garden", "67472e", "earth", 0.84)
 	make("cobble", "91897a", "cobble", 0.51)
 	make("stone", "a49a82", "stone", 0.54)
+	make("mossstone", "69735b", "stone", 0.78)
+	materials.mossstone.albedo_color = Color("839179")
 	make("plaster", "e7c48d", "plaster", 0.5)
 	make("ivory", "dfd6b9", "plaster", 0.5)
 	make("sage", "a2af82", "plaster", 0.5)
 	make("wood", "4a3429", "wood", 0.74)
+	make("bark", "453b2b", "wood", 0.96)
 	make("board", "895f3e", "wood", 0.83)
 	make("oak", "a67e4d", "wood", 0.9)
 	make("wine", "804f4a", "wood", 0.73)
@@ -49,7 +52,7 @@ func make(id: String, hex: String, pattern := "", scale := 1.0) -> void:
 			mat.albedo_texture = load(asset)
 			mat.albedo_color = Color(hex).lerp(Color.WHITE, 0.52)
 			if id == "mossroof":
-				mat.albedo_color = Color("7594aa")
+				mat.albedo_color = Color("61858b")
 			elif id == "goldroof":
 				mat.albedo_color = Color("e9d79c")
 		else:

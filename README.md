@@ -18,7 +18,9 @@ Validado no Windows com Godot 4.7.2 e renderizador Compatibility/OpenGL. O proje
 | **E** | Interagir com o ponto ou morador indicado |
 | **F5 / F9** dentro do jogo | Salvar / carregar |
 | **F6** | Alternar gráficos baixos, médios e altos |
-| **F7** | Alternar desfoque nas bordas |
+| **F7** | Alternar profundidade de campo, gradação de cor e vinheta |
+| **F1** | Mostrar ou recolher a ajuda |
+| **F10** | Ocultar ou restaurar toda a interface |
 | **T** | Avançar três horas do relógio para experimentar a iluminação e as rotinas |
 
 Saia do caminho de terra para chegar à praça. A **Raposa Dourada** fica ao norte do poço e a **Forja do Amieiro** a oeste. A horta fica atrás da forja. Atravesse a ponte de pedra e siga a trilha para o norte para chegar à entrada da Ruína da Serra.
@@ -54,7 +56,7 @@ Um dia do vale dura **120 minutos reais** com o jogo aberto. O ano tem **96 dias
 ### Validado
 
 - [x] Importação das texturas e inicialização da cena principal em Godot 4.7.2.
-- [x] Renderização OpenGL em 1280 × 720, com inspeção visual de dia e à noite.
+- [x] Renderização OpenGL em 1280 × 720, com inspeção visual de dia, à noite, sob chuva e no outono.
 - [x] Testes de calendário, estações, parâmetros climáticos, movimentação, colisão, interação, câmera, rotinas, conclusão das pontes e restauração do salvamento.
 
 Para repetir a verificação no terminal, substitua `godot` pelo caminho do executável. No Windows, a edição `_console.exe` exibe o relatório no terminal.
@@ -63,19 +65,20 @@ Para repetir a verificação no terminal, substitua `godot` pelo caminho do exec
 godot --headless --path . --editor --import
 godot --headless --path . --quit-after 100
 godot --headless --path . --fixed-fps 60 --script res://tests/verify.gd
+godot --headless --path . --fixed-fps 60 --script res://tests/verify_presentation.gd
 ```
 
 ### Limites do protótipo
 
 - A visita à ruína termina na entrada selada. As casas, a taberna e a forja são exploráveis pelo exterior.
-- Há um único perfil geográfico ativo no mapa. O cálculo de clima aceita outros perfis. A vegetação mantém a mesma aparência durante as quatro estações.
-- A iluminação usa luz ambiente global, sol, sombras e fontes locais. Iluminação indireta com rebotes físicos fica pendente. O desfoque é um efeito de lente baseado nas bordas da tela.
+- Há um único perfil geográfico ativo no mapa. O cálculo de clima aceita outros perfis. As estações mudam a paleta do terreno e das plantas. O acúmulo de neve é representado apenas por uma cobertura leve quando o clima indica neve.
+- A iluminação usa luz ambiente global, sol, sombras e fontes locais. A oclusão de contato das fundações é calculada pelo material do solo. Iluminação indireta com rebotes físicos fica pendente. A lente reconstrói a profundidade a partir do buffer do Compatibility e mantém o foco no personagem.
 - As rotas dos moradores usam pontos de passagem predefinidos. A posição exata deles é reconstruída ao carregar a partir do horário e da obra.
-- Multiplayer e servidor autoritativo ficam para uma etapa posterior. A entrega é o projeto Godot executável pelo editor.
+- Multiplayer e servidor autoritativo ficam para uma etapa posterior. A entrega é o projeto Godot executável pelo editor. O rio usa um reflexo de céu aproximado pelo ângulo de visão. Os sons são sintetizados para o protótipo.
 
 ## Recursos visuais
 
-O atlas original de telhas, alvenaria, madeira e reboco foi gerado com a ferramenta ImageGen integrada e recortado em quatro texturas de 128 × 128 em `assets/textures/`. As duas imagens do briefing orientaram a composição e o tratamento dos materiais. Sprites, modelos modulares, vegetação, pavimento, texturas de terreno e shaders foram construídos para este projeto. Nenhum pacote de arte de terceiros foi incorporado. A interface procura fontes disponíveis no sistema e usa o fallback do Godot quando necessário.
+O atlas original de telhas, alvenaria, madeira e reboco foi gerado com a ferramenta ImageGen integrada e recortado em quatro texturas de 128 × 128 em `assets/textures/`. As duas imagens do briefing orientaram a composição e o tratamento dos materiais. Sprites, modelos modulares, vegetação, pavimento, texturas de terreno e shaders foram construídos para este projeto. Nenhum pacote de arte de terceiros foi incorporado. A atualização acrescenta quatro recortes de folhagem e quatro de terreno gerados com ImageGen integrado. Os sons são amostras PCM produzidas pelo código do jogo. A interface procura fontes disponíveis no sistema e usa o fallback do Godot quando necessário.
 
 Prompt do atlas
 
@@ -83,5 +86,49 @@ Prompt do atlas
 
 ## Git
 
-O projeto de trabalho tem um commit inicial local. Para publicar a versão local em um repositório privado novo, a partir da pasta com o histórico Git e com a CLI autenticada, execute `gh repo create mundo-vivo --private --source=. --remote=origin --push`.
+O projeto de trabalho preserva o commit inicial `db18fee`. A tag `seguranca/antes-hd2d` aponta para a versão anterior. A atualização tem commit local na mesma branch. Para publicar a versão local em um repositório privado novo, a partir da pasta com o histórico Git e com a CLI autenticada, execute `gh repo create mundo-vivo --private --source=. --remote=origin --push`.
 
+
+## Atualização HD-2D
+
+- `scripts/presentation/diorama.gd` e `palette.gd` acrescentam módulos de fachada, sacadas, toldos, carroça, vasos e detalhes de margem. Os mesmos pontos de passagem, construções e rotas do Vale continuam em uso.
+- `scripts/presentation/vale_foliage.gd` e `shaders/foliage.gdshader` agrupam camadas de folhas, pinheiros, arbustos e gramíneas em MultiMesh. O vento move as pontas e a câmera abre uma área de visibilidade na copa. Fachadas que cortam a linha entre câmera e jogador são ocultadas temporariamente, mantendo suas colisões.
+- `shaders/terrain.gdshader` mistura terra, grama, pedras e raízes com bordas irregulares, escurecimento junto a fundações, variação sazonal e solo úmido.
+- `scripts/presentation/vale.gd`, `shaders/lens.gdshader` e `shaders/river.gdshader` concentram a revisão de câmera, luz, foco e rio. A opção F7 desliga a lente, e F10 remove todos os painéis para fotografias.
+- `scripts/presentation/pixel_actor.gd` desenha sprites originais em 32 × 40, com frente, costas e perfis espelhados. As animações incluem repouso, caminhada e trabalho. Ao conversar, o morador faz uma pausa e se vira para o jogador.
+- `scripts/presentation/vale_audio.gd` produz vento, correnteza, crepitação da vila, pássaros, passos e marteladas. A correnteza e o trabalho têm posição no mundo.
+- `tests/verify.gd` preserva as 31 verificações originais. `tests/verify_presentation.gd` acrescenta 15 verificações de câmera, HUD, presets, orientações, estações e fontes de áudio.
+
+### Perfis de renderização
+
+| Perfil | Configuração |
+| --- | --- |
+| Baixo | Contato das fundações, vegetação essencial, alcance de 59 m, lente e MSAA desativados |
+| Médio | Mais folhagem, sombras em 2 cascatas, alcance de 83 m, lente moderada, MSAA 2× |
+| Alto | Folhagem completa, sombras em 4 cascatas, alcance de 115 m, lente completa, MSAA 4× |
+
+### Novas texturas
+
+Os arquivos estão em `assets/textures/`. Folhagem em 192 × 192 por peça: `oak_leaf.png`, `pine_bough.png`, `bramble.png` e `meadow_tuft.png`. Terreno em 256 × 256 por material: `meadow.png`, `path_dirt.png`, `setts.png` e `riverbank.png`.
+
+Prompt da folhagem
+
+> Transparent original 2D game asset texture atlas in a 2x2 equal square grid, no lines, no labels, no borders, each quadrant has one isolated asset fully inside cell with clear transparent margins. Upper left broad irregular gnarled oak canopy foliage spray, jagged silhouette like clusters of tiny oak leaves viewed front from slightly above, no trunk. Upper right dense downsloping pine bough with needles on angled brown twig and jagged tapering fan silhouette. Lower left dense broadleaf ivy bramble bush foliage with small muted ivory blooms and bright sprigs, irregular asymmetric silhouette. Lower right fine long wispy meadow grass tuft with ferns and a few yellow and violet tiny wildflowers. All use the same hand painted 16 bit pixel art / HD-2D medieval diorama art direction: sharp chunky pixel marks, detailed granular clusters, deep olive and moss green dark shadows, subdued natural sunlit pale green highlights, natural realistic tree silhouettes distilled into old RPG art, no gradients, no giant round blobs, no shadows outside silhouettes, no background, no anti-aliasing. A production game texture atlas, not a scene.
+
+Prompt do terreno
+
+> Original square 2x2 grid of seamless medieval landscape game terrain textures, exact equal quadrants with no border gaps labels or markings. Orthographic top down fully flat surfaces. Upper left rich green old meadow short mossy grass ground cover, tiny dark olive and golden blades and small leaf litter patches, muted textured woodland ground; upper right worn amber umber dirt road made of granular soil with little gravel; bottom left tightly packed irregular rounded gray slate cobblestones (about 14 stones across the quadrant) with dirt joints, weathered moss hints; bottom right dark stone and root riverbank earth with subtle moss details. Hand-painted pixel art with visible pixel clusters, crisp 16-bit fantasy medieval HD-2D diorama material, muted natural greens warm earth and warm gray, contrast but neutral even lighting and no perspective. All four quadrants filled edge to edge as textures.
+
+## Medição e validação
+
+Medição local a 1280 × 720, Godot 4.7.2, Compatibility/OpenGL, RTX 3050 Laptop 6 GB, VSync desligado. Foram amostrados 90 quadros por perfil com a câmera voltada para a praça, após aquecimento. Os números representam uma amostra curta nesta máquina.
+
+| Perfil | Tempo médio por quadro | FPS equivalentes | Chamadas de desenho por quadro |
+| --- | ---: | ---: | ---: |
+| Baixo | 1,50 ms | 666 | 206 |
+| Médio | 2,60 ms | 384 | 412 |
+| Alto | 2,93 ms | 341 | 528 |
+
+O ajuste final da lente acrescentou amostras diretas do quadro para tornar o desfoque perceptível no OpenGL. As duas pontes também foram agrupadas por material. O Godot emitiu um aviso de acesso ao repositório de certificados do Windows neste ambiente. A importação, as capturas e os testes offline foram concluídos.
+
+O projeto local está sem remoto configurado. A busca na integração GitHub retornou zero repositórios instalados para `mundo-vivo`. A CLI `gh` estava indisponível e a integração acessível não oferecia criação de repositório.

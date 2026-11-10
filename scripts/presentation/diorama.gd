@@ -12,14 +12,30 @@ var project_bridge: Node3D
 var lanterns: Array[OmniLight3D] = []
 var halos: Array[Sprite3D] = []
 var halo_texture: ImageTexture
+var foliage := ValeFoliage.new()
+var ground := ShaderMaterial.new()
+var river := ShaderMaterial.new()
+var trunks := CylinderMesh.new()
+var batch_root: Node3D
+var footprints := PackedVector4Array()
+var occluded: Array[Node3D] = []
 
 func _ready() -> void:
 	rng.seed = 92451
 	tuft.left_to_right = 0.25
 	leaf.radial_segments = 7
 	leaf.rings = 3
+	trunks.top_radius = 0.32
+	trunks.bottom_radius = 0.52
+	trunks.height = 1.0
+	trunks.radial_segments = 7
+	trunks.rings = 0
+	add_child(foliage)
 	_build_land()
 	_build_village()
+	_ground_cover()
+	ground.set_shader_parameter("footprints", footprints)
+	foliage.build()
 	_flush()
 	permanent_bridge = Node3D.new()
 	add_child(permanent_bridge)
@@ -29,18 +45,17 @@ func _ready() -> void:
 	update_bridge(0)
 
 func _build_land() -> void:
-	box(Vector3(-18.5, -0.69, 0), Vector3(57, 1.32, 87), "earth")
-	box(Vector3(-18.5, -0.11, 0), Vector3(57, 0.20, 87), "grass")
-	box(Vector3(31.5, -0.69, 0), Vector3(31, 1.32, 87), "earth")
-	box(Vector3(31.5, -0.11, 0), Vector3(31, 0.20, 87), "grass")
+	box(Vector3(-18.5, -0.69, -7), Vector3(57, 1.32, 104), "earth")
+	_soil(Vector3(-18.5, -0.008, -7), Vector2(57, 104))
+	box(Vector3(31.5, -0.69, -7), Vector3(31, 1.32, 104), "earth")
+	_soil(Vector3(31.5, -0.008, -7), Vector2(31, 104))
 	var water := MeshInstance3D.new()
 	var surface := PlaneMesh.new()
-	surface.size = Vector2(6, 87)
+	surface.size = Vector2(6, 104)
 	water.mesh = surface
-	var river := ShaderMaterial.new()
 	river.shader = preload("res://shaders/river.gdshader")
 	water.material_override = river
-	water.position = Vector3(13, -0.48, 0)
+	water.position = Vector3(13, -0.48, -7)
 	add_child(water)
 	for z in range(-43, 44):
 		for bank in [9.95, 16.05]:
@@ -59,11 +74,8 @@ func _build_land() -> void:
 		for side in [9.93, 16.07]:
 			collider(Vector3(side, 0.5, (end_z + left_z) * 0.5), Vector3(0.23, 2, length), self)
 		left_z = gap + 1.25
-	for i in 60:
-		var z := rng.randf_range(-42, -22)
-		var x := rng.randf_range(-42, 43)
-		if x < 8 or x > 18:
-			piece(leaf, Vector3(x, -1.5, z), Vector3(8, rng.randf_range(3, 7), 8), "354b33")
+	_ridge(-48.0, 9.0)
+	_ridge(17.0, 48.0)
 	for i in 172:
 		var x := rng.randf_range(-39, 39)
 		var z := rng.randf_range(-41, 34)
@@ -84,15 +96,6 @@ func _build_land() -> void:
 		grass(Vector3(x, 0, z), rng.randf_range(0.42, 1.05))
 
 func _build_village() -> void:
-	paving(Vector3(0, 0, 0), Vector2(12, 9.2), "cobble")
-	paving(Vector3(0, 0, 2), Vector2(19.7, 2.6), "cobble")
-	paving(Vector3(20.3, 0, 2), Vector2(8.6, 2.5), "trail")
-	paving(Vector3(21, 0, -4.8), Vector2(2.15, 15.8), "trail")
-	paving(Vector3(0, 0, -9), Vector2(2.1, 11.2), "cobble")
-	paving(Vector3(0, 0, 8.5), Vector2(2.2, 12), "trail")
-	paving(Vector3(-1, 0, -12), Vector2(21.7, 1.9), "trail")
-	paving(Vector3(18.7, 0, -12), Vector2(5.5, 2.0), "trail")
-	paving(Vector3(-9, 0, 7), Vector2(16, 1.65), "trail")
 
 	house(Vector3(-6.7, 0, -6.6), 4.9, 4.0, 2.67, "plaster", "roof", "wine", "A RAPOSA DOURADA")
 	house(Vector3(2.6, 0, -7.1), 3.9, 3.3, 2.35, "ivory", "goldroof", "teal")
@@ -134,11 +137,20 @@ func _build_village() -> void:
 		box(Vector3(6.4, 0.2 + 0.15 * (i % 2), -12.8 - i * 0.19), Vector3(2.1, 0.18, 0.18), "oak")
 
 func house(p: Vector3, w: float, d: float, h: float, wall: String, roof: String, door: String, sign_text := "") -> void:
+	var appearance := footprints.size()
+	batch_root = Node3D.new()
+	batch_root.name = "Fachada%d" % appearance
+	add_child(batch_root)
+	footprints.append(Vector4(p.x, p.z, w * 0.5, d * 0.5))
 	var front := d * 0.5
-	var ridge := w * 0.34
+	var ridge := w * (0.43 if appearance in [0, 7] else 0.28 if appearance in [3, 5] else 0.34)
 	box(p + Vector3(0, h * 0.5, 0), Vector3(w, h, d), wall)
 	box(p + Vector3(0, 0.25, 0), Vector3(w + 0.12, 0.5, d + 0.13), "stone")
-	collider(p + Vector3(0, h * 0.5, 0), Vector3(w, h, d), self)
+	var wall_hit := collider(p + Vector3(0, h * 0.5, 0), Vector3(w, h, d), self)
+	wall_hit.set_meta("facade", batch_root)
+	var roof_hit := collider(p + Vector3(0, h + ridge * 0.34, 0), Vector3(w * 0.77, ridge * 0.70, d + 0.30), self)
+	roof_hit.collision_layer = 4
+	roof_hit.set_meta("facade", batch_root)
 	_gable(p + Vector3(0, h, 0), w, d, ridge, wall)
 	for side in [-1.0, 1.0]:
 		var z: float = side * (front + 0.045)
@@ -171,6 +183,7 @@ func house(p: Vector3, w: float, d: float, h: float, wall: String, roof: String,
 	box(p + Vector3(w * 0.32, h + ridge * 0.50, -d * 0.23), Vector3(0.58, 1.67, 0.58), "stone")
 	box(p + Vector3(w * 0.32, h + ridge * 0.50 + 0.84, -d * 0.23), Vector3(0.71, 0.16, 0.71), "stone")
 	var f := front + 0.12
+	_facade_detail(p, w, d, h, ridge, appearance, door, roof)
 	box(p + Vector3(0, 0.76, f), Vector3(0.93, 1.51, 0.14), "wood")
 	box(p + Vector3(0, 0.77, f + 0.085), Vector3(0.75, 1.39, 0.06), door)
 	for x in [-0.24, 0.0, 0.24]:
@@ -193,6 +206,7 @@ func house(p: Vector3, w: float, d: float, h: float, wall: String, roof: String,
 		sign_label(at + Vector3(0, 0, 0.096), sign_text, 0.0053)
 		light_at(p + Vector3(0.75, 1.76, f + 0.60), 4.6, 1.55)
 		box(p + Vector3(0.75, 1.82, f + 0.25), Vector3(0.18, 0.29, 0.18), "glass")
+	batch_root = null
 
 func _gable(p: Vector3, w: float, d: float, h: float, material: String) -> void:
 	var a := p + Vector3(-w / 2.0, 0, -d / 2.0)
@@ -208,7 +222,7 @@ func _gable(p: Vector3, w: float, d: float, h: float, material: String) -> void:
 	var mesh := MeshInstance3D.new()
 	mesh.mesh = surface.commit()
 	mesh.material_override = palette.materials[material]
-	add_child(mesh)
+	_visual_parent().add_child(mesh)
 
 func window(p: Vector3, w: float, h: float, shutter: String) -> void:
 	box(p, Vector3(w + 0.10, h + 0.11, 0.12), "wood")
@@ -236,55 +250,69 @@ func well(p: Vector3) -> void:
 	collider(p + Vector3.UP * 0.55, Vector3(1.8, 1.1, 1.8), self)
 
 func tree(p: Vector3, s: float, conifer: bool, solid: bool) -> void:
-	var trunk := (3.7 if conifer else 2.4) * s
-	beam(p + Vector3.UP * 0.03, p + Vector3(0.14 * s, trunk, -0.09 * s), 0.26 * s, "wood")
+	var height := (rng.randf_range(4.1, 6.4) if conifer else rng.randf_range(3.3, 4.5)) * s
+	var lean := Vector3(rng.randf_range(-0.43, 0.43), 0, rng.randf_range(-0.36, 0.36)) * s
+	var fork := p + Vector3.UP * height * 0.48 + lean * 0.35
+	_branch(p, fork, 0.34 * s)
+	_branch(fork, p + Vector3.UP * height * 0.87 + lean, 0.21 * s)
 	if solid:
-		collider(p + Vector3.UP * 0.95, Vector3(0.56, 1.9, 0.56) * s, self)
-	var shades := ["253d32", "354b33", "415e39", "4f6839", "638044", "77964e", "8da956", "a0af58"]
+		collider(p + Vector3.UP * 0.95, Vector3(0.49, 1.9, 0.49) * s, self)
+	var turn := rng.randf() * TAU
 	if conifer:
-		for level in 5:
-			var size := 2.9 - level * 0.49
+		var width := rng.randf_range(2.1, 3.45) * s
+		for level in 6:
+			var rise := float(level) / 5.0
+			var y := height * (0.32 + rise * 0.62)
+			var size := width * (1.0 - 0.80 * rise)
 			for i in 4:
-				var a := i * TAU / 4.0 + level * 0.58
-				var spread := size * 0.21
-				var q := p + Vector3(cos(a) * spread, 1.65 + level * 0.55, sin(a) * spread) * s
-				piece(leaf, q, Vector3(size * 0.77, 1.48, size * 0.77) * s, shades[mini(6, level + i % 3)], Vector3(0, a, 0.21))
+				var angle := turn + i * PI / 2.0 + level * 0.57
+				var q := p + Vector3(cos(angle) * size * 0.13, y, sin(angle) * size * 0.13) + lean * rise
+				foliage.plant("pine_bough", q, Vector2(size, size * 0.65), angle, 1 if i == 2 else 2 if i == 3 else 0,
+					Color(0.70 + rise * 0.23, 0.80 + rise * 0.15, 0.73 + rise * 0.20, 0.82), 0.05 + rise * 0.24)
 	else:
-		for i in 5:
-			var a := i * TAU / 5.0
-			var q := Vector3(cos(a) * 0.9, 2.58, sin(a) * 0.9) * s
-			beam(p + Vector3.UP * 1.25 * s, p + q, 0.15 * s, "board")
-		for i in 29:
-			var a := i * 2.399
-			var r := sqrt(float(i) / 28) * 1.43
-			var y := rng.randf_range(2.32, 3.16) + (1.43 - r) * 0.46
-			var q := p + Vector3(cos(a) * r, y, sin(a) * r) * s
-			var size := rng.randf_range(0.76, 1.46)
-			var shade := clampi(roundi((y - 2.38) * 4.0) + rng.randi_range(-1, 2), 0, 7)
-			piece(leaf, q, Vector3(size, size * 0.76, size) * s, shades[shade], Vector3(0, a, 0))
-			for k in 3:
-				var twig := Vector3(cos(a + k * 0.78), 0.43 + k * 0.05, sin(a + k * 0.78)) * size * s * 0.42
-				piece(leaf, q + twig, Vector3(0.48, 0.41, 0.46) * size * s, shades[mini(7, shade + k % 2)], Vector3(0, a + k, 0))
+		var width := rng.randf_range(2.0, 3.1) * s
+		for arm in 6:
+			var a := turn + arm * 2.399
+			var reach := width * rng.randf_range(0.16, 0.48)
+			var branch := p + lean + Vector3(cos(a) * reach, height * rng.randf_range(0.60, 0.91), sin(a) * reach)
+			_branch(fork, branch, s * rng.randf_range(0.10, 0.15))
+			for i in 3:
+				var q := branch + Vector3(cos(a) * i * 0.08, 0.30 + i * 0.12, sin(a) * i * 0.11)
+				var shade := rng.randf_range(0.72, 1.03)
+				foliage.plant("oak_leaf", q, Vector2(width, width * 0.59) * rng.randf_range(0.69, 1.04),
+					a + PI / 3.0 * i, 0 if i < 2 else 1, Color(shade, shade, shade * 0.88, 0.02), -0.20 + 0.19 * i)
+		foliage.plant("oak_leaf", p + lean + Vector3.UP * height, Vector2(width * 0.74, width * 0.49), turn, 0, Color(1, 1, 0.87, 0.0))
+		if solid:
+			for i in 20:
+				var a := rng.randf() * TAU
+				var r := rng.randf_range(0.60, 1.94)
+				var spot := p + Vector3(cos(a) * r, 0.009, sin(a) * r)
+				piece(tuft, spot, Vector3(0.07, 0.017, 0.11), "d1aa60" if i % 3 == 0 else "4f6839", Vector3(0, a, 0))
+
+func _branch(a: Vector3, b: Vector3, width: float) -> void:
+	var delta := b - a
+	var basis := Basis(Quaternion(Vector3.UP, delta.normalized())).scaled_local(Vector3(width, delta.length(), width))
+	_enqueue(trunks, "bark", Transform3D(basis, (a + b) * 0.5))
 
 func grass(p: Vector3, scale: float) -> void:
-	var shades := ["415e39", "638044", "77964e", "8da956", "b7bc65"]
-	for i in 3:
-		var h := rng.randf_range(0.13, 0.29) * scale
-		var q := p + Vector3(rng.randf_range(-0.12, 0.12), h * 0.46, rng.randf_range(-0.12, 0.12))
-		piece(tuft, q, Vector3(0.061 * scale, h, 0.045 * scale), shades[rng.randi_range(0, 4)], Vector3(0, rng.randf() * TAU, rng.randf_range(-0.39, 0.39)))
+	var height := scale * rng.randf_range(0.31, 0.58)
+	var tone := rng.randf_range(0.69, 1.02)
+	var tint := Color(tone, tone, tone * 0.89, 0.08)
+	var facing := rng.randf() * TAU
+	var q := p + Vector3.UP * height * 0.38
+	var size := Vector2(height * 1.55, height)
+	foliage.plant("meadow_tuft", q, size, facing, 1, tint)
+	if rng.randf() > 0.59:
+		foliage.plant("meadow_tuft", q, size, facing + PI * 0.5, 2, tint)
 
 func shrub(p: Vector3) -> void:
-	var greens := ["354b33", "415e39", "4f6839", "638044", "77964e", "8da956"]
-	for i in 15:
-		var a := i * 2.399
-		var r := rng.randf_range(0.08, 0.39)
-		var h := rng.randf_range(0.18, 0.57)
-		var q := p + Vector3(cos(a) * r, h, sin(a) * r)
-		var scale := rng.randf_range(0.21, 0.39)
-		piece(leaf, q, Vector3(1.0, 0.82, 1.0) * scale, greens[clampi(floori(h * 9.0), 0, 5)], Vector3(0, a, 0))
-		if i % 6 == 0:
-			piece(leaf, q + Vector3.UP * 0.12, Vector3.ONE * 0.068, "e3b79c")
-
+	var scale := rng.randf_range(0.67, 1.28)
+	var turn := rng.randf() * TAU
+	for i in 3:
+		var a := turn + i * PI / 3.0
+		var q := p + Vector3(cos(a) * 0.11, 0.37 * scale, sin(a) * 0.11)
+		foliage.plant("bramble", q, Vector2(scale, scale * 0.74), a, 0 if i < 2 else 1,
+			Color(0.90 + i * 0.04, 0.89 + i * 0.04, 0.87, 0.20))
 func flower(p: Vector3) -> void:
 	var choices := ["f1d999", "e3b79c", "b784aa", "e2e4c1"]
 	var tint: String = choices[rng.randi_range(0, choices.size() - 1)]
@@ -350,13 +378,12 @@ func _market(p: Vector3, awning: String) -> void:
 
 func _cave() -> void:
 	var p := Vector3(21.0, 0, -19.1)
-	paving(Vector3(21, 0, -15.7), Vector2(2.4, 7.0), "trail")
 	for i in 25:
 		var q := p + Vector3(rng.randf_range(-4.8, 4.8), rng.randf_range(0.12, 1.15), rng.randf_range(-3.4, 0.2))
 		if absf(q.x - p.x) < 1.4 and q.z > p.z - 0.8:
 			continue
 		var rock := rng.randf_range(1.1, 3.2)
-		piece(leaf, q, Vector3(rock, rock * 0.93, rock), "stone" if i % 2 else "627b68", Vector3(0, i * 0.9, 0.2))
+		piece(leaf, q, Vector3(rock, rock * 0.93, rock), "stone" if i % 2 else "mossstone", Vector3(0, i * 0.9, 0.2))
 	box(p + Vector3.UP * 1.03, Vector3(2.02, 2.05, 0.27), "dark")
 	for i in 9:
 		var a := float(i) * PI / 8.0
@@ -392,7 +419,7 @@ func light_at(p: Vector3, radius: float, energy: float) -> void:
 	halo.pixel_size = 0.039
 	halo.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(halo)
+	_visual_parent().add_child(halo)
 	halos.append(halo)
 	var lamp_light := OmniLight3D.new()
 	lamp_light.position = p
@@ -400,7 +427,7 @@ func light_at(p: Vector3, radius: float, energy: float) -> void:
 	lamp_light.omni_range = radius
 	lamp_light.light_energy = energy
 	lamp_light.set_meta("base_energy", energy)
-	add_child(lamp_light)
+	_visual_parent().add_child(lamp_light)
 	lanterns.append(lamp_light)
 
 func bench(p: Vector3) -> void:
@@ -429,24 +456,25 @@ func update_bridge(stage: int) -> void:
 	_bridge(project_bridge, -12.0, stage, false)
 
 func _bridge(root: Node3D, z: float, stage: int, stone: bool) -> void:
+	batch_root = root
 	for x in [10.26, 15.74]:
-		live_box(root, Vector3(x, -0.27, z), Vector3(0.76, 0.77, 2.85), "stone")
+		box(Vector3(x, -0.27, z), Vector3(0.76, 0.77, 2.85), "stone")
 	if stone or stage >= 1:
 		for x in [10.55, 12.14, 13.86, 15.45]:
 			for offset in [-0.95, 0.95]:
-				live_box(root, Vector3(x, -0.39, z + offset), Vector3(0.18, 1.47, 0.19), "board" if not stone else "stone")
+				box(Vector3(x, -0.39, z + offset), Vector3(0.18, 1.47, 0.19), "board" if not stone else "stone")
 	if stage >= 2:
 		for offset in [-0.82, 0.82]:
-			live_box(root, Vector3(13, -0.10, z + offset), Vector3(6.50, 0.24, 0.18), "wood")
+			box(Vector3(13, -0.10, z + offset), Vector3(6.50, 0.24, 0.18), "wood")
 	if stone or stage >= 3:
 		for i in 27:
-			live_box(root, Vector3(9.88 + 0.24 * i, 0.01, z), Vector3(0.23, 0.14, 2.53), "stone" if stone else "oak")
+			box(Vector3(9.88 + 0.24 * i, 0.01, z), Vector3(0.23, 0.14, 2.53), "stone" if stone else "oak")
 		for side in [-1, 1]:
 			var rz: float = z + side * 1.24
-			live_box(root, Vector3(13, 0.61, rz), Vector3(6.69, 0.12, 0.16), "stone" if stone else "board")
-			live_box(root, Vector3(13, 0.27, rz), Vector3(6.64, 0.13, 0.13), "stone" if stone else "board")
+			box(Vector3(13, 0.61, rz), Vector3(6.69, 0.12, 0.16), "stone" if stone else "board")
+			box(Vector3(13, 0.27, rz), Vector3(6.64, 0.13, 0.13), "stone" if stone else "board")
 			for x in [9.73, 10.81, 11.9, 13, 14.1, 15.19, 16.27]:
-				live_box(root, Vector3(x, 0.36, rz), Vector3(0.21, 0.80, 0.21), "stone" if stone else "wood")
+				box(Vector3(x, 0.36, rz), Vector3(0.21, 0.80, 0.21), "stone" if stone else "wood")
 			collider(Vector3(13, 0.42, rz), Vector3(6.74, 1.1, 0.17), root)
 	else:
 		collider(Vector3(10.0, 0.60, z), Vector3(0.21, 1.7, 2.55), root)
@@ -454,19 +482,14 @@ func _bridge(root: Node3D, z: float, stage: int, stone: bool) -> void:
 		for side in [-1, 1]:
 			var rz: float = z + side * 1.64
 			for x in [8.99, 10.45, 15.55, 17.01]:
-				live_box(root, Vector3(x, 0.87, rz), Vector3(0.16, 2.31, 0.16), "board")
+				box(Vector3(x, 0.87, rz), Vector3(0.16, 2.31, 0.16), "board")
 			for x in [9.71, 16.29]:
-				live_box(root, Vector3(x, 1.15, rz), Vector3(1.60, 0.13, 0.14), "oak", Vector3(0, 0, side * 0.65))
-				live_box(root, Vector3(x, 1.83, rz), Vector3(1.76, 0.12, 0.79), "oak")
+				box(Vector3(x, 1.15, rz), Vector3(1.60, 0.13, 0.14), "oak", Vector3(0, 0, side * 0.65))
+				box(Vector3(x, 1.83, rz), Vector3(1.76, 0.12, 0.79), "oak")
 		for i in stage + 1:
-			live_box(root, Vector3(8.86, 0.16 + i * 0.10, z - 0.95), Vector3(1.56, 0.11, 0.28), "oak")
-
-func live_box(root: Node3D, p: Vector3, size: Vector3, material: String, rot := Vector3.ZERO) -> void:
-	var node := MeshInstance3D.new()
-	node.mesh = cube
-	node.material_override = palette.materials[material]
-	node.transform = Transform3D(Basis.from_euler(rot).scaled_local(size), p)
-	root.add_child(node)
+			box(Vector3(8.86, 0.16 + i * 0.10, z - 0.95), Vector3(1.56, 0.11, 0.28), "oak")
+	batch_root = null
+	_flush()
 
 func paving(p: Vector3, size: Vector2, material: String) -> void:
 	box(p + Vector3.UP * 0.003, Vector3(size.x, 0.035, size.y), material)
@@ -492,7 +515,7 @@ func sign_label(p: Vector3, value: String, size: float) -> void:
 	sign.outline_size = 0
 	sign.modulate = Color("efdba5")
 	sign.position = p
-	add_child(sign)
+	_visual_parent().add_child(sign)
 
 func beam(a: Vector3, b: Vector3, width: float, material: String) -> void:
 	var delta := b - a
@@ -506,9 +529,10 @@ func piece(mesh: Mesh, p: Vector3, size: Vector3, material: String, rot := Vecto
 	_enqueue(mesh, material, Transform3D(Basis.from_euler(rot).scaled_local(size), p))
 
 func _enqueue(mesh: Mesh, material: String, transform_value: Transform3D) -> void:
-	var key := "%s:%s" % [mesh.get_instance_id(), material]
+	var root := _visual_parent()
+	var key := "%s:%s:%s" % [mesh.get_instance_id(), material, root.get_instance_id()]
 	if not batches.has(key):
-		batches[key] = {"mesh": mesh, "material": material, "items": []}
+		batches[key] = {"mesh": mesh, "material": material, "items": [], "root": root}
 	batches[key].items.append(transform_value)
 
 func _flush() -> void:
@@ -524,10 +548,10 @@ func _flush() -> void:
 		instance.material_override = palette.materials[entry.material]
 		if entry.mesh == tuft:
 			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(instance)
+		entry.root.add_child(instance)
 	batches.clear()
 
-func collider(p: Vector3, size: Vector3, root: Node3D) -> void:
+func collider(p: Vector3, size: Vector3, root: Node3D) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	var hitbox := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -536,3 +560,172 @@ func collider(p: Vector3, size: Vector3, root: Node3D) -> void:
 	body.position = p
 	body.add_child(hitbox)
 	root.add_child(body)
+	return body
+
+func _visual_parent() -> Node3D:
+	return batch_root if batch_root != null else self
+
+func camera_visibility(from: Vector3, target: Vector3) -> bool:
+	foliage.camera_window(from, target)
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(from, target, 5)
+	var next: Array[Node3D] = []
+	var exclude: Array[RID] = []
+	var other := false
+	for i in 5:
+		query.exclude = exclude
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			break
+		var body: StaticBody3D = hit.collider
+		if not body.has_meta("facade"):
+			other = true
+			break
+		var facade: Node3D = body.get_meta("facade")
+		if facade not in next:
+			next.append(facade)
+		exclude.append(body.get_rid())
+	for facade in occluded:
+		if facade not in next:
+			facade.show()
+	for facade in next:
+		facade.hide()
+	occluded = next
+	return other
+
+func weather(index: int, wet: bool, snow: bool, light: float) -> void:
+	foliage.atmosphere(index, wet)
+	var tints := [Color("c7d59a"), Color("e1db9a"), Color("d9ac69"), Color("aaae9d")]
+	ground.set_shader_parameter("ground_tint", tints[index])
+	ground.set_shader_parameter("wetness", 1.0 if wet else 0.0)
+	ground.set_shader_parameter("frost", 0.34 if snow else 0.0)
+	river.set_shader_parameter("daylight", light)
+	river.set_shader_parameter("rain", 1.0 if wet else 0.0)
+
+func _soil(p: Vector3, size: Vector2) -> void:
+	if ground.shader == null:
+		ground.shader = preload("res://shaders/terrain.gdshader")
+		var names := {"grass_map": ["meadow", "grass"], "dirt_map": ["path_dirt", "trail"],
+			"cobble_map": ["setts", "cobble"], "bank_map": ["riverbank", "earth"]}
+		for key in names:
+			var entry: Array = names[key]
+			var path := "res://assets/textures/%s.png" % entry[0]
+			ground.set_shader_parameter(key, load(path) if ResourceLoader.exists(path) else palette.materials[entry[1]].albedo_texture)
+	var node := MeshInstance3D.new()
+	var surface := PlaneMesh.new()
+	surface.size = size
+	node.mesh = surface
+	node.material_override = ground
+	node.position = p
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(node)
+
+func _ridge(left: float, right: float) -> void:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for row in 13:
+		for col in 18:
+			var corners := PackedVector3Array()
+			for offset in [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]:
+				var x := lerpf(left, right, (col + offset.x) / 18.0)
+				var z: float = -26.0 - (row + offset.y) * 2.57
+				var mound := (1.9 + 1.15 * sin(x * 0.19) + 0.63 * cos(x * 0.43 + z * 0.21))
+				var y := -0.055 + mound * smoothstep(-28.0, -46.0, z)
+				corners.append(Vector3(x, y, z))
+			for i in [0, 2, 1, 0, 3, 2]:
+				surface.add_vertex(corners[i])
+	surface.generate_normals()
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = surface.commit()
+	mesh.material_override = ground
+	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mesh)
+
+func _ground_cover() -> void:
+	for i in 260:
+		var z := rng.randf_range(-27, 20)
+		var bank := 9.56 if i % 2 == 0 else 16.40
+		if absf(z - 2.0) > 1.6 and absf(z + 12.0) > 1.7:
+			var p := Vector3(bank + rng.randf_range(-0.25, 0.25), 0, z)
+			grass(p, rng.randf_range(0.78, 1.68))
+			if i % 18 == 0:
+				shrub(p)
+	for i in 176:
+		var x := rng.randf_range(-11, 9.4)
+		var z := rng.randf_range(-16, 14)
+		if absf(x) < 5.7 and z > -4.6 and z < 4.65:
+			continue
+		var p := Vector3(x, 0.04, z)
+		var size := rng.randf_range(0.075, 0.21)
+		piece(leaf, p, Vector3(size, size * 0.49, size * 0.8), "stone", Vector3(0, rng.randf() * TAU, 0))
+	for i in 75:
+		var z := rng.randf_range(4.9, 14.6)
+		var x := rng.randf_range(1.15, 2.75) * (-1.0 if i % 2 == 0 else 1.0)
+		var p := Vector3(x, 0, z)
+		grass(p, rng.randf_range(0.73, 1.49))
+		if i % 7 == 0:
+			flower(p)
+	_cart(Vector3(-3.9, 0, -5.92))
+	for p in [Vector3(-5.1, 0, -3.81), Vector3(3.97, 0, -5.11), Vector3(8.45, 0, -3.72), Vector3(-6.7, 0, 6.1)]:
+		_planter(p)
+	for p in [Vector3(-11.85, 0, 5.14), Vector3(7.4, 0, -13.58), Vector3(-7.97, 0, -2.39)]:
+		_crate(p)
+
+func _facade_detail(p: Vector3, w: float, d: float, h: float, ridge: float, style: int, trim: String, roof: String) -> void:
+	var z := d * 0.5 + 0.10
+	for j in 8:
+		var x := (float(j) / 7.0 - 0.5) * (w - 0.3)
+		box(p + Vector3(x, 0.21 + (j % 2) * 0.15, z), Vector3(0.30, 0.15, 0.11), "stone", Vector3(0, 0, (j % 3 - 1) * 0.04))
+	for x in [-w * 0.32, w * 0.32]:
+		box(p + Vector3(x, 1.65, z), Vector3(0.85, 0.09, 0.22), "oak")
+		box(p + Vector3(x, 0.78, z), Vector3(0.87, 0.13, 0.22), "stone")
+		for side in [-0.35, 0.35]:
+			box(p + Vector3(x + side, 1.18, z + 0.06), Vector3(0.06, 0.76, 0.08), "oak")
+	if style in [0, 2, 8]:
+		var balcony := p + Vector3(0, h + 0.18, z + 0.34)
+		box(balcony, Vector3(w * 0.54, 0.13, 0.78), "wood")
+		box(balcony + Vector3(0, 0.48, 0.37), Vector3(w * 0.55, 0.10, 0.09), "oak")
+		for i in 8:
+			var x := (float(i) / 7.0 - 0.5) * w * 0.52
+			box(balcony + Vector3(x, 0.25, 0.37), Vector3(0.062, 0.45, 0.065), trim)
+		for x in [-w * 0.21, w * 0.21]:
+			beam(balcony + Vector3(x, -0.47, -0.38), balcony + Vector3(x, 0, 0.27), 0.10, "wood")
+	elif style in [1, 4, 5]:
+		var lean := p + Vector3(-w * 0.23, h * 0.74, z + 0.39)
+		box(lean, Vector3(w * 0.45, 0.12, 0.91), roof, Vector3(0.24, 0, 0))
+		for x in [-w * 0.19, w * 0.19]:
+			beam(lean + Vector3(x, -0.49, -0.40), lean + Vector3(x, 0, 0.32), 0.10, "wood")
+	else:
+		for x in [-w * 0.30, w * 0.30]:
+			beam(p + Vector3(x, h + 0.05, z), p + Vector3(x * 0.3, h + ridge * 0.65, z), 0.095, "board")
+	for row in 5:
+		var y := h + ridge * 0.48 + 0.13 * row
+		box(p + Vector3(w * 0.32, y, -d * 0.23), Vector3(0.59, 0.025, 0.59), "earth")
+
+func _crate(p: Vector3) -> void:
+	box(p + Vector3.UP * 0.21, Vector3(0.48, 0.43, 0.45), "board")
+	for side in [-0.21, 0.21]:
+		box(p + Vector3(side, 0.22, 0.23), Vector3(0.06, 0.43, 0.05), "oak")
+	beam(p + Vector3(-0.20, 0.05, 0.24), p + Vector3(0.20, 0.38, 0.24), 0.043, "oak")
+
+func _planter(p: Vector3) -> void:
+	cylinder(p + Vector3.UP * 0.135, 0.18, 0.27, "roof", 9)
+	cylinder(p + Vector3.UP * 0.265, 0.205, 0.07, "roof", 9)
+	flower(p + Vector3.UP * 0.26)
+
+func _cart(p: Vector3) -> void:
+	box(p + Vector3.UP * 0.57, Vector3(0.80, 0.13, 1.18), "oak")
+	for x in [-0.43, 0.43]:
+		box(p + Vector3(x, 0.75, 0), Vector3(0.075, 0.28, 1.21), "board")
+		beam(p + Vector3(x * 0.74, 0.54, 0.48), p + Vector3(x * 0.74, 0.34, 1.49), 0.075, "wood")
+		for j in 10:
+			var a := float(j) * TAU / 10.0
+			var b := float(j + 1) * TAU / 10.0
+			var center := p + Vector3(x * 1.26, 0.34, -0.08)
+			var a_pos := center + Vector3(0, sin(a), cos(a)) * 0.34
+			var b_pos := center + Vector3(0, sin(b), cos(b)) * 0.34
+			beam(a_pos, b_pos, 0.058, "wood")
+			if j % 2 == 0:
+				beam(center, a_pos, 0.034, "oak")
+	for q in [Vector3(-0.11, 0.65, -0.24), Vector3(0.10, 0.65, 0.27)]:
+		_crate(p + q)

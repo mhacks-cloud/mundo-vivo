@@ -15,6 +15,10 @@ var sun := DirectionalLight3D.new()
 var env := Environment.new()
 var atmosphere := ProceduralSkyMaterial.new()
 var hud := ValeHUD.new()
+var ambience := ValeAudio.new()
+var lens_pass := MeshInstance3D.new()
+var wet_blend := 0.0
+var raining := false
 var lens: ShaderMaterial
 var precipitation: ShaderMaterial
 var follow := SPAWN + Vector3(0, 0.65, -2.15)
@@ -44,10 +48,15 @@ func _ready() -> void:
 	_setup_light()
 	_setup_overlays()
 	add_child(hud)
+	add_child(ambience)
 	simulation.construction.changed.connect(_bridge_changed)
 	player.configure(Color("417b89"), Color("dfaf62"), 0, true)
 	player.position = SPAWN
 	add_child(player)
+	var ears := AudioListener3D.new()
+	ears.position.y = 0.85
+	player.add_child(ears)
+	ears.make_current()
 	hidden_marker.text = "◆"
 	hidden_marker.font_size = 26
 	hidden_marker.outline_size = 6
@@ -97,8 +106,7 @@ func _physics_process(delta: float) -> void:
 	player.velocity = move * 3.65
 	player.move_and_slide()
 	player.pose(player.get_real_velocity(), right, sprite_light)
-	var sight := PhysicsRayQueryParameters3D.create(camera.position, player.position + Vector3.UP * 0.9, 1)
-	hidden_marker.visible = not get_world_3d().direct_space_state.intersect_ray(sight).is_empty()
+	hidden_marker.visible = diorama.camera_visibility(camera.position, player.position + Vector3.UP * 0.83)
 	for i in people.size():
 		var npc := people[i]
 		var plan := residents.plans[i]
@@ -116,6 +124,7 @@ func _physics_process(delta: float) -> void:
 		npc.move_and_slide()
 		npc.parcel.visible = plan.carry
 		npc.pose(npc.get_real_velocity(), right, sprite_light, plan.building)
+	ambience.listen(player, people, simulation.clock.hour(), raining, delta)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("interact"):
@@ -130,6 +139,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("focus"):
 		focus = not focus
 		_refresh_quality()
+	elif event.is_action_pressed("toggle_hud"):
+		hud.visible = not hud.visible
+	elif event.is_action_pressed("help"):
+		hud.toggle_help()
 	elif event.is_action_pressed("skip_time"):
 		simulation.tick(WorldClock.DAY_SECONDS / 8.0)
 		_refresh_environment(0.16)
@@ -143,7 +156,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _configure_inputs() -> void:
 	var bindings := {"left": KEY_A, "right": KEY_D, "up": KEY_W, "down": KEY_S,
 		"interact": KEY_E, "orbit_left": KEY_Q, "orbit_right": KEY_R, "save_game": KEY_F5,
-		"quality": KEY_F6, "focus": KEY_F7, "load_game": KEY_F9, "skip_time": KEY_T}
+		"quality": KEY_F6, "focus": KEY_F7, "load_game": KEY_F9, "skip_time": KEY_T,
+		"toggle_hud": KEY_F10, "help": KEY_F1}
 	for action in bindings:
 		if InputMap.has_action(action):
 			continue
@@ -161,6 +175,7 @@ func _camera_frame(delta: float) -> void:
 	follow = follow.lerp(point, 1.0 - exp(-5.2 * delta))
 	camera.position = follow + (radial * 0.868 + Vector3.UP * 0.497) * distance
 	camera.look_at(follow, Vector3.UP)
+	lens.set_shader_parameter("focal_distance", -camera.to_local(player.position + Vector3.UP * 0.70).z)
 
 func _setup_light() -> void:
 	var sky := Sky.new()
@@ -169,7 +184,7 @@ func _setup_light() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("dfebdd")
-	env.ambient_light_energy = 0.61
+	env.ambient_light_energy = 0.45
 	env.ambient_light_sky_contribution = 0.0
 	env.fog_enabled = true
 	env.fog_density = 0.004
@@ -179,14 +194,25 @@ func _setup_light() -> void:
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 72
 	sun.directional_shadow_fade_start = 0.79
-	sun.shadow_blur = 1.35
+	sun.shadow_blur = 1.8
+	sun.shadow_bias = 0.035
+	sun.shadow_normal_bias = 0.55
 	add_child(sun)
 
 func _setup_overlays() -> void:
 	var effects := CanvasLayer.new()
 	effects.layer = 1
 	add_child(effects)
-	lens = _effect(effects, preload("res://shaders/lens.gdshader"))
+	var quad := QuadMesh.new()
+	quad.size = Vector2(2, 2)
+	lens = ShaderMaterial.new()
+	lens.shader = preload("res://shaders/lens.gdshader")
+	lens.render_priority = -10
+	lens_pass.mesh = quad
+	lens_pass.material_override = lens
+	lens_pass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	lens_pass.extra_cull_margin = 16384.0
+	camera.add_child(lens_pass)
 	precipitation = _effect(effects, preload("res://shaders/precipitation.gdshader"))
 
 func _effect(parent: CanvasLayer, shader: Shader) -> ShaderMaterial:
@@ -207,19 +233,23 @@ func _refresh_environment(delta: float) -> void:
 	var climate := simulation.climate.sample(simulation.clock.total_day(), hour)
 	var wet: bool = climate.weather == "Chuva" or climate.weather == "Neve"
 	var mist: bool = climate.weather == "Névoa"
-	var fog := Color("222c49").lerp(Color("a9b9a5"), light)
-	sun.rotation_degrees = Vector3(-16.0 - maxf(0.0, solar) * 52.0, -51.0 - (hour - 8.5) * 7.0, 0)
-	sun.light_color = Color("8b9ccf").lerp(Color("fff2d0").lerp(Color("ffbe79"), golden), light)
-	sun.light_energy = (0.18 + light * 0.87) * (0.58 if wet else 1.0)
-	env.ambient_light_color = Color("8198ca").lerp(Color("e0e9cf"), light)
-	env.ambient_light_energy = 0.35 + light * 0.33
+	raining = wet
+	wet_blend = lerpf(wet_blend, 1.0 if wet else 0.0, clampf(delta * 1.9, 0.0, 1.0))
+	var season_index := simulation.climate.seasons.index(simulation.clock.total_day(), simulation.climate.latitude)
+	diorama.weather(season_index, wet, climate.weather == "Neve", light)
+	var fog := Color("222d48").lerp(Color("7d9ea1"), light)
+	sun.rotation_degrees = Vector3(-15.0 - maxf(0.0, solar) * 49.0, -66.0 - (hour - 8.5) * 8.5, 0)
+	sun.light_color = Color("8d9bd0").lerp(Color("fff0d7").lerp(Color("ffc28a"), golden), light)
+	sun.light_energy = (0.12 + light * 0.79) * (1.0 - wet_blend * 0.38)
+	env.ambient_light_color = Color("8196c8").lerp(Color("bfcfca"), light)
+	env.ambient_light_energy = 0.36 + light * 0.18
 	atmosphere.sky_top_color = Color("10182f").lerp(Color("679fb2"), light)
 	atmosphere.sky_horizon_color = fog
 	atmosphere.ground_horizon_color = fog
 	atmosphere.ground_bottom_color = Color("26353c").lerp(Color("738060"), light)
 	env.fog_light_color = fog
-	env.fog_density = 0.0045 + (0.020 if wet else 0.013 if mist else 0.0)
-	precipitation.set_shader_parameter("strength", 0.72 if wet else 0.0)
+	env.fog_density = 0.0023 + wet_blend * 0.014 + (0.009 if mist else 0.0)
+	precipitation.set_shader_parameter("strength", wet_blend * 0.78)
 	precipitation.set_shader_parameter("snow", climate.weather == "Neve")
 	for lamp in diorama.lanterns:
 		lamp.light_energy = float(lamp.get_meta("base_energy")) * (1.02 - light * 0.83)
@@ -227,19 +257,25 @@ func _refresh_environment(delta: float) -> void:
 	for halo in diorama.halos:
 		halo.modulate.a = (0.8 - light * 0.73) * (0.94 + sin(visual_time * 3.4 + halo.position.x) * 0.06)
 	diorama.palette.materials.glass.emission_energy_multiplier = lerpf(0.92, 0.22, light)
-	sprite_light = sprite_light.lerp(Color("8492bc").lerp(Color.WHITE, light), clampf(delta * 3.0, 0.0, 1.0))
+	sprite_light = sprite_light.lerp(Color("768bb1").lerp(Color("fff2da"), light * (1.0 - wet_blend * 0.19)), clampf(delta * 3.0, 0.0, 1.0))
 	hud.update_clock(simulation.clock,
 		simulation.climate.seasons.name_for(simulation.clock.total_day(), simulation.climate.latitude), climate)
 
 func _refresh_quality() -> void:
 	get_viewport().msaa_3d = Viewport.MSAA_DISABLED if quality == 0 else Viewport.MSAA_2X if quality == 1 else Viewport.MSAA_4X
 	sun.shadow_enabled = quality > 0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if quality == 2 else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	sun.directional_shadow_max_distance = 62.0 if quality == 2 else 38.0
+	sun.shadow_blur = 2.1 if quality == 2 else 1.55
+	camera.far = [59.0, 83.0, 115.0][quality]
+	diorama.foliage.quality(quality)
 	env.fog_enabled = quality > 0
 	for lamp in diorama.lanterns:
 		lamp.visible = quality > 0
 	for halo in diorama.halos:
 		halo.visible = quality > 0
-	lens.set_shader_parameter("defocus", 0.0 if not focus else [0.36, 0.56, 0.87][quality])
+	lens_pass.visible = quality > 0 and focus
+	lens.set_shader_parameter("strength", 1.02 if quality == 2 else 0.67)
 	hud.update_options(QUALITY[quality], focus)
 
 func _register_landmarks() -> void:
@@ -274,6 +310,10 @@ func _register_landmarks() -> void:
 		func() -> void: hud.show_message(simulation.construction.status()))
 
 func _talk(plan: Dictionary) -> void:
+	var person := people[residents.plans.find(plan)]
+	person.face(player.position - person.position)
+	player.face(person.position - player.position)
+	plan.wait = maxf(plan.wait, 1.3)
 	var text_value: String
 	if plan.worker:
 		text_value = "A última tábua já foi assentada." if simulation.construction.complete() else "A madeira é do bosque. Ajude a levar uma carga à margem."
