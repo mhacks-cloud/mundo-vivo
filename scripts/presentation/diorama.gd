@@ -85,7 +85,8 @@ func _build_land() -> void:
 			continue
 		if x > 16 and x < 26 and z > -17 and z < 6:
 			continue
-		tree(Vector3(x, 0, z), rng.randf_range(0.68, 1.4), z < -14 or rng.randf() > 0.46, false)
+		if not Homestead.within_residential(x, z) and Vector2(x, z).distance_squared_to(Vector2(22.0, 5.7)) > 16.0:
+			tree(Vector3(x, 0, z), rng.randf_range(0.68, 1.4), z < -14 or rng.randf() > 0.46, false)
 	for i in 1750:
 		var x := rng.randf_range(-29, 30)
 		var z := rng.randf_range(-32, 29)
@@ -607,7 +608,7 @@ func camera_visibility(from: Vector3, target: Vector3) -> bool:
 			next.append(facade)
 		exclude.append(body.get_rid())
 	for facade in occluded:
-		if facade not in next:
+		if is_instance_valid(facade) and facade not in next:
 			facade.show()
 	for facade in next:
 		facade.hide()

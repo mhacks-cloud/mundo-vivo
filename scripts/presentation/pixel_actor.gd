@@ -62,6 +62,17 @@ func configure(primary: Color, hair: Color, hat: int, is_player: bool, role := "
 	if is_player:
 		visual.render_priority = 1
 
+func appearance(primary: Color, hair: Color) -> void:
+	var previous := visual.animation
+	views.clear()
+	for i in 3:
+		views.append(_frames(primary, hair, 0, i))
+	visual.sprite_frames = views[view_index]
+	visual.play(previous if views[view_index].has_animation(previous) else &"idle")
+
+func preview_texture(primary: Color, hair: Color) -> Texture2D:
+	return _draw(primary, hair, 0, 0, &"idle", 0)
+
 func face(toward: Vector3) -> void:
 	if toward.length_squared() > 0.01:
 		facing = toward.normalized()

@@ -53,6 +53,7 @@ func _run() -> void:
 	var scene := load("res://scenes/vale.tscn") as PackedScene
 	var vale := scene.instantiate()
 	vale.save_path = TEST_SAVE
+	vale.onboarding_enabled = false
 	root.add_child(vale)
 	await _ticks(4)
 	_check(vale.camera.current and vale.people.size() == 9, "cena principal, câmera e nove NPCs")

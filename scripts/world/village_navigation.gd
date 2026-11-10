@@ -25,7 +25,9 @@ func rebuild(root: Node3D, bridge_open: bool) -> void:
 			if not hit is CollisionShape3D or hit.disabled or not hit.shape is BoxShape3D:
 				continue
 			var center: Vector3 = hit.global_position
-			var half: Vector3 = hit.shape.size * 0.5
+			var local: Vector3 = hit.shape.size * 0.5
+			var orientation: Basis = hit.global_basis
+			var half := orientation.x.abs() * local.x + orientation.y.abs() * local.y + orientation.z.abs() * local.z
 			_block(Vector2(center.x, center.z), Vector2(half.x, half.z) + Vector2.ONE * 0.36)
 	revision += 1
 

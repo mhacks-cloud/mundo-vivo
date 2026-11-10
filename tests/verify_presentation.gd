@@ -10,6 +10,7 @@ func _run() -> void:
 	var scene := load("res://scenes/vale.tscn") as PackedScene
 	var vale := scene.instantiate()
 	vale.save_path = "user://teste_apresentacao_%d.json" % OS.get_process_id()
+	vale.onboarding_enabled = false
 	root.add_child(vale)
 	for i in 5:
 		await physics_frame

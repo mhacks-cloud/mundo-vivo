@@ -11,6 +11,7 @@ func _run() -> void:
 	_check_inventory_and_migration()
 	var vale := (load("res://scenes/vale.tscn") as PackedScene).instantiate()
 	vale.save_path = path
+	vale.onboarding_enabled = false
 	root.add_child(vale)
 	await _ticks(5)
 	var world: WorldSimulation = vale.simulation

@@ -14,6 +14,8 @@ var social_poll := 0.0
 var interactions := InteractionSystem.new()
 var saves := SaveManager.new()
 var save_path := SaveManager.PATH
+var onboarding_enabled := true
+var career := ValeLife.new()
 var diorama := ValeDiorama.new()
 var player := PixelActor.new()
 var people: Array[PixelActor] = []
@@ -90,8 +92,12 @@ func _ready() -> void:
 			func() -> void: _talk(resident), 1.65)
 		interactions.targets.back()["actor"] = person
 	_register_landmarks()
+	add_child(career)
+	career.setup(self)
 	if not _load(false):
 		_reset_people()
+	if onboarding_enabled:
+		career.start_setup()
 	_camera_frame(1.0)
 	_refresh_quality()
 	_refresh_environment(0.16)
@@ -99,9 +105,12 @@ func _ready() -> void:
 	hud.show_message("A vila está em movimento. J abre o diário do vale.", 5.5)
 
 func _process(delta: float) -> void:
+	_camera_frame(delta)
+	career.tick(delta)
+	if not career.setup_stage.is_empty():
+		return
 	simulation.tick(delta)
 	visual_time += delta
-	_camera_frame(delta)
 	last_climate_update += delta
 	if last_climate_update >= 0.10:
 		_refresh_environment(last_climate_update)
@@ -110,6 +119,9 @@ func _process(delta: float) -> void:
 	hud.prompt(String(target.get("label", "")))
 
 func _physics_process(delta: float) -> void:
+	if not career.setup_stage.is_empty():
+		return
+	career.physics(delta)
 	var input := Input.get_vector("left", "right", "up", "down")
 	var right := camera.global_basis.x
 	var forward := Vector3.UP.cross(right)
@@ -181,6 +193,8 @@ func _move_resident(index: int, right: Vector3, delta: float) -> void:
 	npc.set_cargo(simulation.economy.stock.first(plan.id))
 	npc.pose(movement, right, sprite_light, plan.building, plan.state)
 func _unhandled_input(event: InputEvent) -> void:
+	if career.input_event(event):
+		return
 	if event.is_action_pressed("interact"):
 		player.gesture()
 		interactions.interact(player.position)
@@ -202,6 +216,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_refresh_quality()
 	elif event.is_action_pressed("toggle_hud"):
 		hud.visible = not hud.visible
+		career.ui.visible = hud.visible
 	elif event.is_action_pressed("help"):
 		hud.toggle_help()
 	elif event.is_action_pressed("skip_time"):
@@ -232,7 +247,7 @@ func _camera_frame(delta: float) -> void:
 	yaw = lerp_angle(yaw, target_yaw, 1.0 - exp(-10.0 * delta))
 	distance = lerpf(distance, target_distance, 1.0 - exp(-9.0 * delta))
 	var radial := Vector3(sin(yaw), 0, cos(yaw))
-	var point := player.position + Vector3.UP * 0.65 - radial * (distance * 0.09)
+	var point := career.camera_point(player.position + Vector3.UP * 0.65 - radial * (distance * 0.09))
 	follow = follow.lerp(point, 1.0 - exp(-5.2 * delta))
 	camera.position = follow + (radial * 0.868 + Vector3.UP * 0.497) * distance
 	camera.look_at(follow, Vector3.UP)
@@ -374,7 +389,9 @@ func _register_landmarks() -> void:
 		func() -> void: hud.inspect("Raposa Dourada", "Refeições · 12:00–14:00",
 			"Pão de centeio e sidra da colheita. Os moradores fazem aqui a pausa do meio-dia."))
 	interactions.register("Forja do Amieiro", Vector3(-11.1, 0.10, 5.25),
-		func() -> void: _stock_card("Forja do Amieiro", VillageEconomy.FORGE_HOURS, "forge"))
+		func() -> void:
+			if career.active(): career.open_near("forge")
+			else: _stock_card("Forja do Amieiro", VillageEconomy.FORGE_HOURS, "forge"))
 	interactions.register("Horta de Teresa", Vector3(-10.22, 0.10, 8.7),
 		func() -> void: _stock_card("Horta de Teresa", "06:00–18:00 · " + VillageEconomy.CROP_NAMES[simulation.economy.crop], "farm"))
 	interactions.register("Ruína da Serra", Vector3(21, 0.10, -18.4),
@@ -404,9 +421,13 @@ func _register_landmarks() -> void:
 				_stock_card("Depósito da Ponte", "Estoque público", "depot"), 1.8)
 	interactions.register("Obra da ponte", Vector3(17.35, 0.10, -12.0), _bridge_card)
 	interactions.register("Banca de Lina", Vector3(-7.12, 0.10, -0.15),
-		func() -> void: _stock_card("Banca de Lina", VillageEconomy.MARKET_HOURS, "market"), 1.65)
+		func() -> void:
+			if career.active(): career.open_near("store")
+			else: _stock_card("Banca de Lina", VillageEconomy.MARKET_HOURS, "market"), 1.65)
 	interactions.register("Quadro de estoques", Vector3(3.8, 0.10, -3.72),
 		func() -> void:
+			if career.active():
+				career.open_near("contracts")
 			var store := simulation.economy.stock
 			hud.inspect("Estoques do vale", "Quadro público",
 				"Horta · %s\nForja · %s\nBanca · %s\nDepósito · %s" % [
@@ -475,6 +496,7 @@ func _bridge_changed() -> void:
 func _save() -> void:
 	var state := simulation.snapshot()
 	state["residents"] = residents.snapshot()
+	state["career"] = career.snapshot()
 	state["written_unix"] = Time.get_unix_time_from_system()
 	state["player"] = [player.position.x, player.position.y, player.position.z]
 	var result := saves.write_state(state, save_path)
@@ -487,6 +509,7 @@ func _load(show_feedback: bool) -> bool:
 			hud.show_message("Nenhum salvamento válido para carregar.")
 		return false
 	simulation.restore(state)
+	career.restore(state.get("career"))
 	var stamp: Variant = state.get("written_unix")
 	if not show_feedback and (stamp is int or stamp is float) and is_finite(float(stamp)) and stamp > 0:
 		simulation.tick(clampf(Time.get_unix_time_from_system() - float(stamp), 0.0, offline_limit))

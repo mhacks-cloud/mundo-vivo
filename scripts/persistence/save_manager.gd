@@ -4,10 +4,17 @@ extends RefCounted
 const PATH := "user://vale_do_amieiro.json"
 
 func write_state(state: Dictionary, path: String = PATH) -> Error:
+	var backup := path + ".pre-4.bak"
+	if FileAccess.file_exists(path) and not FileAccess.file_exists(backup):
+		var prior: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if prior is Dictionary and (prior.get("version") == 1 or prior.get("version") == 2):
+			var copy := DirAccess.copy_absolute(path, backup)
+			if copy != OK:
+				return copy
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if file == null:
 		return FileAccess.get_open_error()
-	file.store_string(JSON.stringify({"version": 2, "state": state}, "\t"))
+	file.store_string(JSON.stringify({"version": 3, "state": state}, "\t"))
 	file.flush()
 	var error := file.get_error()
 	file.close()
@@ -22,7 +29,7 @@ func read_state(path: String = PATH) -> Dictionary:
 	if not document is Dictionary:
 		return {}
 	var version: Variant = document.get("version")
-	if version != 1 and version != 2:
+	if version != 1 and version != 2 and version != 3:
 		return {}
 	var state: Variant = document.get("state")
 	if not state is Dictionary or not _number(state.get("elapsed")) or float(state.elapsed) < 0:
