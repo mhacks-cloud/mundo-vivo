@@ -94,10 +94,14 @@ func _ready() -> void:
 	_register_landmarks()
 	add_child(career)
 	career.setup(self)
-	if not _load(false):
+	if onboarding_enabled and save_path == SaveManager.PATH:
 		_reset_people()
-	if onboarding_enabled:
-		career.start_setup()
+		career.start_menu()
+	else:
+		if not _load(false):
+			_reset_people()
+		if onboarding_enabled:
+			career.start_setup()
 	_camera_frame(1.0)
 	_refresh_quality()
 	_refresh_environment(0.16)
@@ -394,8 +398,12 @@ func _register_landmarks() -> void:
 			else: _stock_card("Forja do Amieiro", VillageEconomy.FORGE_HOURS, "forge"))
 	interactions.register("Horta de Teresa", Vector3(-10.22, 0.10, 8.7),
 		func() -> void: _stock_card("Horta de Teresa", "06:00–18:00 · " + VillageEconomy.CROP_NAMES[simulation.economy.crop], "farm"))
-	interactions.register("Ruína da Serra", Vector3(21, 0.10, -18.4),
-		func() -> void: hud.show_message("Uma corrente de ar frio escapa da entrada. O portal está selado."), 2.9)
+	interactions.register("Entrar na Ruína da Serra", Vector3(21, 0.10, -18.4),
+		func() -> void:
+			if career.active():
+				career.ruin.enter()
+			else:
+				hud.show_message("Crie um personagem para explorar a galeria."), 2.9)
 	interactions.register("Canteiro · entregar uma carga", Vector3(9.1, 0.10, -12.0),
 		func() -> void:
 			var bridge := simulation.construction
@@ -502,14 +510,16 @@ func _save() -> void:
 	var result := saves.write_state(state, save_path)
 	hud.show_message("Vale salvo." if result == OK else "Falha ao salvar · " + error_string(result))
 
-func _load(show_feedback: bool) -> bool:
-	var state := saves.read_state(save_path)
+func _load(show_feedback: bool, source := "") -> bool:
+	var state := saves.read_state(save_path if source.is_empty() else source)
 	if state.is_empty():
 		if show_feedback:
 			hud.show_message("Nenhum salvamento válido para carregar.")
 		return false
 	simulation.restore(state)
 	career.restore(state.get("career"))
+	if career.active() and not career.life.profile.has("uid"):
+		career.life.profile.uid = save_path.sha256_text().left(32)
 	var stamp: Variant = state.get("written_unix")
 	if not show_feedback and (stamp is int or stamp is float) and is_finite(float(stamp)) and stamp > 0:
 		simulation.tick(clampf(Time.get_unix_time_from_system() - float(stamp), 0.0, offline_limit))

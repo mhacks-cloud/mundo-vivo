@@ -139,6 +139,58 @@ func starter(actor: String, id: String, bag: LifeInventory) -> String:
 	changed.emit()
 	return ""
 
+func remove(actor: String, index: int) -> String:
+	if not _owns_piece(actor, index):
+		return "Peça indisponível."
+	var part := pieces[index]
+	pieces.remove_at(index)
+	var plot: String = part.plot
+	var cell: Vector2i = part.cell
+	var reason := ""
+	match String(PIECES[part.kind].layer):
+		"base":
+			if layer_at(plot, cell, "floor") or layer_at(plot, cell, "roof"):
+				reason = "Remova o piso e o telhado primeiro."
+			for edge in pieces:
+				if edge.plot != plot or PIECES[edge.kind].layer != "edge" or edge.kind == "fence":
+					continue
+				var neighbor: Vector2i = edge.cell + DIRECTIONS[edge.dir]
+				if (edge.cell == cell or neighbor == cell) and not layer_at(plot, edge.cell, "base") and not layer_at(plot, neighbor, "base"):
+					reason = "Uma parede ainda depende desta fundação."
+					break
+		"floor":
+			if layer_at(plot, cell, "furniture"):
+				reason = "Retire a mobília primeiro."
+	if not reason.is_empty():
+		pieces.insert(index, part)
+		return reason
+	changed.emit()
+	return ""
+
+func check_move(actor: String, index: int, cell: Vector2i, direction: int) -> String:
+	if not _owns_piece(actor, index) or pieces[index].kind not in ["chair", "flowers"]:
+		return "Selecione uma decoração ou mobília."
+	var part := pieces[index]
+	pieces.remove_at(index)
+	var reason := check(actor, part.plot, part.kind, cell, direction)
+	pieces.insert(index, part)
+	return reason
+
+func move(actor: String, index: int, cell: Vector2i, direction: int) -> String:
+	var reason := check_move(actor, index, cell, direction)
+	if not reason.is_empty():
+		return reason
+	var part := pieces[index]
+	pieces.remove_at(index)
+	part.cell = cell
+	part.dir = direction
+	pieces.append(part)
+	changed.emit()
+	return ""
+
+func _owns_piece(actor: String, index: int) -> bool:
+	return not actor.is_empty() and index >= 0 and index < pieces.size() and owners.get(pieces[index].plot, "") == actor
+
 func snapshot() -> Dictionary:
 	var saved: Array[Dictionary] = []
 	for part in pieces:
@@ -155,11 +207,18 @@ func restore(data: Variant) -> void:
 				if owner is String and not owner.is_empty() and owner.length() <= 40 and owned(owner).is_empty():
 					owners[id] = owner
 		if data.get("pieces") is Array:
+			var pending: Array[Dictionary] = []
 			for part in data.pieces.slice(0, 450):
 				if not part is Dictionary or not part.get("plot") is String or not part.get("kind") is String or not part.get("cell") is Array or part.cell.size() != 2:
 					continue
 				var cell := Vector2i(int(LifeCatalog.number(part.cell[0], -1, -1, SIDE)), int(LifeCatalog.number(part.cell[1], -1, -1, SIDE)))
 				var dir := int(LifeCatalog.number(part.get("dir"), -1, -1, 4))
+				var piece := {"plot": part.plot, "kind": part.kind, "cell": cell, "dir": dir}
 				if check(owners.get(part.plot, ""), part.plot, part.kind, cell, dir).is_empty():
-					pieces.append({"plot": part.plot, "kind": part.kind, "cell": cell, "dir": dir})
+					pieces.append(piece)
+				else:
+					pending.append(piece)
+			for part in pending:
+				if check(owners.get(part.plot, ""), part.plot, part.kind, part.cell, part.dir).is_empty():
+					pieces.append(part)
 	changed.emit()

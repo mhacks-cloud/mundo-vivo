@@ -52,7 +52,8 @@ func create(raw: String, profession: String, nation: String, coat: int, hair: in
 		return false
 	if coat < 0 or coat >= LifeCatalog.COLORS.size() or hair < 0 or hair >= LifeCatalog.HAIR.size():
 		return false
-	profile = {"name": clean, "class": profession, "nation": nation, "coat": coat, "hair": hair}
+	profile = {"name": clean, "class": profession, "nation": nation, "coat": coat, "hair": hair,
+		"uid": Crypto.new().generate_random_bytes(16).hex_encode()}
 	gold = 48
 	treasury = LifeCatalog.NATIONS[nation].treasury
 	hp = max_hp()
@@ -251,7 +252,7 @@ func gather(source: String, now: float) -> bool:
 	logbook("Coleta · " + LifeCatalog.label(source))
 	return true
 
-func farm(cell: Vector2i, action: String, now: float, rain := false) -> bool:
+func farm(cell: Vector2i, action: String, now: float, rain := false, temperature := 18.0) -> bool:
 	var plot := estate.owned(ID)
 	if role() != "farmer" or equipped("tool").is_empty() or plot.is_empty():
 		return false
@@ -265,21 +266,28 @@ func farm(cell: Vector2i, action: String, now: float, rain := false) -> bool:
 	if action in ["seed", "herb_seed"]:
 		if plants.has(key) or not bag.spend({action: 1}):
 			return false
-		plants[key] = {"crop": "wheat" if action == "seed" else "herb", "ready": now + 44.0, "wet": rain}
+		var growth := 44.0 if temperature >= 12.0 and temperature <= 29.0 else 68.0
+		plants[key] = {"crop": "wheat" if action == "seed" else "herb", "ready": now + growth, "wet": rain,
+			"fertilized": false, "growth": growth}
 		wear("tool")
 		award(4)
 	elif not plants.has(key):
 		return false
 	elif action == "water" and not plants[key].wet:
 		plants[key].wet = true
-		plants[key].ready = minf(plants[key].ready, now + 22.0)
+		plants[key].ready = minf(plants[key].ready, now + float(plants[key].get("growth", 44.0)) * 0.5)
 		award(3)
-	elif action == "harvest" and plants[key].wet and now >= plants[key].ready and bag.add(plants[key].crop, 4):
+	elif action == "fertilize" and not plants[key].get("fertilized", false) and bag.spend({"egg": 1}):
+		plants[key].fertilized = true
+	elif action == "harvest" and plants[key].wet and now >= plants[key].ready:
+		var yield_count := 6 if plants[key].get("fertilized", false) else 4
+		if not bag.add(plants[key].crop, yield_count):
+			return false
 		var result: String = plants[key].crop
 		plants.erase(key)
 		wear("tool")
 		award(18)
-		logbook("Colheita · %s ×4" % LifeCatalog.label(result))
+		logbook("Colheita · %s ×%d" % [LifeCatalog.label(result), yield_count])
 	else:
 		return false
 	changed.emit()
@@ -289,7 +297,7 @@ func rain(now: float) -> void:
 	for bed in plants.values():
 		if not bed.wet:
 			bed.wet = true
-			bed.ready = minf(bed.ready, now + 22.0)
+			bed.ready = minf(bed.ready, now + float(bed.get("growth", 44.0)) * 0.5)
 			changed.emit()
 
 func coop(now: float) -> bool:
@@ -332,6 +340,8 @@ func restore(data: Variant) -> void:
 			profile = {"name": name_value, "class": person["class"], "nation": person.nation,
 				"coat": int(LifeCatalog.number(person.get("coat"), 0, 0, LifeCatalog.COLORS.size() - 1)),
 				"hair": int(LifeCatalog.number(person.get("hair"), 0, 0, LifeCatalog.HAIR.size() - 1))}
+	if not profile.is_empty() and person.get("uid") is String and person.uid.length() == 32 and person.uid.is_valid_hex_number(false):
+		profile.uid = person.uid
 	xp = int(LifeCatalog.number(data.get("xp"), 0, 0, 500000))
 	gold = int(LifeCatalog.number(data.get("gold"), 0, 0, 1000000))
 	hp = LifeCatalog.number(data.get("hp"), max_hp(), 0, max_hp())
@@ -363,7 +373,8 @@ func restore(data: Variant) -> void:
 		for key in beds.keys().slice(0, 25):
 			var bed: Variant = beds[key]
 			if key is String and key.length() == 3 and bed is Dictionary and bed.get("crop") in ["wheat", "herb"]:
-				plants[key] = {"crop": bed.crop, "ready": LifeCatalog.number(bed.get("ready"), 0, 0, 3e10), "wet": bed.get("wet") == true}
+				plants[key] = {"crop": bed.crop, "ready": LifeCatalog.number(bed.get("ready"), 0, 0, 3e10), "wet": bed.get("wet") == true,
+					"fertilized": bed.get("fertilized") == true, "growth": LifeCatalog.number(bed.get("growth"), 44.0, 44.0, 68.0)}
 	gather_due.clear()
 	var gathered: Variant = data.get("gather")
 	if gathered is Dictionary:

@@ -90,6 +90,17 @@ func update_status() -> void:
 	status.get_parent().visible = not life.profile.is_empty() and service.setup_stage.is_empty()
 	status.text = "%d PV  ·  %d mana  ·  %d ouro" % [ceili(life.hp), ceili(life.mana), life.gold]
 
+func main_menu(slots: Array[Dictionary]) -> void:
+	_reset("menu", "VALE DO AMIEIRO", "Mundo Vivo", true)
+	_button(body, "Nova partida", service.new_game)
+	for slot in slots:
+		var entry := slot
+		var label: String = ("Recuperar · " if entry.recover else "Carregar · ") + entry.label
+		_button(body, label, func() -> void: service.open_save(entry))
+	if slots.is_empty():
+		_body_text("Crie um personagem para começar no Vale.")
+	_button(body, "Sair", func() -> void: get_tree().quit())
+
 func creator() -> void:
 	_reset("creator", "M U N D O  V I V O   /   0 4", "Sua vida começa aqui", true)
 	var split := HBoxContainer.new()
@@ -182,9 +193,26 @@ func open(next_page: String) -> void:
 				var piece: Dictionary = Homestead.PIECES[id]
 				_button(body, piece.name + " · " + _cost(piece.cost), func() -> void: service.start_build(item))
 			_action("Montar casa inicial · 20 madeira / 4 pedra", "starter", "")
+			_button(body, "Mover ou remover peças", func() -> void: open("renovate"))
 			_button(body, "Abrir baú do terreno", func() -> void: service.open_near("chest"))
 			if life.role() == "farmer":
 				_button(body, "Cuidar dos canteiros", func() -> void: service.open_near("farm"))
+		"renovate":
+			_reset(next_page, "TERRENO", "Reformar")
+			_body_text("Mova bancos e vasos entre encaixes livres. Remover uma peça não devolve materiais.")
+			var indices := []
+			var owned := life.estate.owned(PlayerLife.ID)
+			for index in life.estate.pieces.size():
+				if life.estate.pieces[index].plot == owned:
+					indices.append(str(index))
+			if indices.is_empty():
+				_body_text("Seu lote ainda não tem peças instaladas.")
+				return
+			var picker := _pick(indices, func(id: String) -> String:
+				var part := life.estate.pieces[int(id)]
+				return "%s · célula %d,%d · %d°" % [Homestead.PIECES[part.kind].name, part.cell.x, part.cell.y, part.dir * 90])
+			_button(body, "Mover banco ou vaso", func() -> void: _perform("move_piece", _selected(picker)))
+			_button(body, "Remover sem reembolso", func() -> void: _perform("remove_piece", _selected(picker)))
 		"farm":
 			_reset(next_page, "L A V O U R A   P A R T I C U L A R", "Canteiros")
 			_body_text("Instale um canteiro pelo menu H. Regue após plantar ou aguarde chuva.")
@@ -199,6 +227,8 @@ func open(next_page: String) -> void:
 					_action("Plantar erva medicinal", "plant", key + ":herb_seed")
 				else:
 					_action("Regar", "plant", key + ":water")
+					if not bed.get("fertilized", false):
+						_action("Adubar com 1 ovo", "plant", key + ":fertilize")
 					_action("Colher", "plant", key + ":harvest")
 		"store":
 			_reset(next_page, "M E R C A D O   R E G I O N A L", "Banca de Lina")

@@ -10,6 +10,7 @@ const GATHER := {"wood": Vector3(-13.9, 0.1, -4.90), "herb": Vector3(-4.7, 0.1, 
 	"stone": Vector3(20.2, 0.1, -13.80), "iron": Vector3(22.0, 0.1, -17.0)}
 var life := PlayerLife.new()
 var training := TrainingSession.new()
+var ruin := ValeRuin.new()
 var housing := ValeHousing.new()
 var ui := ValeLifeUI.new()
 var game: Node3D
@@ -19,6 +20,7 @@ var build_kind := ""
 var build_dir := 0
 var build_cell := Vector2i(-1, -1)
 var build_reason := ""
+var moving_piece := -1
 var target_models: Array[Node3D] = []
 var target_labels: Array[Label3D] = []
 var projectiles: Array[Dictionary] = []
@@ -33,8 +35,40 @@ func setup(scene: Node3D) -> void:
 	add_child(ui)
 	ui.setup(self)
 	_create_training()
+	game.add_child(ruin)
+	ruin.setup(game, self)
 	_register()
 	default_appearance = Vector2i.ZERO
+
+func start_menu() -> void:
+	setup_stage = "menu"
+	ui.main_menu(game.saves.list_slots())
+
+func new_game() -> void:
+	if setup_stage != "menu":
+		return
+	var path: String = game.saves.new_slot()
+	if path.is_empty():
+		ui.feedback.text = "Não foi possível criar a pasta de personagens."
+		return
+	game.save_path = path
+	start_setup()
+
+func open_save(entry: Dictionary) -> void:
+	if setup_stage != "menu" or entry not in game.saves.list_slots():
+		return
+	var old_path: String = game.save_path
+	game.save_path = entry.path
+	var source: String = entry.path + ".previous" if entry.recover else entry.path
+	if not game._load(false, source):
+		game.save_path = old_path
+		ui.feedback.text = "O arquivo selecionado está indisponível."
+		return
+	setup_stage = ""
+	ui.hide_panel()
+	start_setup()
+	if entry.recover:
+		game.hud.show_message("Cópia anterior carregada. F5 grava novamente esta partida.")
 
 func start_setup() -> void:
 	if life.profile.is_empty():
@@ -97,11 +131,12 @@ func snapshot() -> Dictionary:
 	for shot in projectiles:
 		var p: Vector3 = shot.node.position
 		shots.append({"at": [p.x, p.y, p.z], "target": shot.target, "amount": shot.amount})
-	return {"life": life.snapshot(), "training": training.snapshot(), "shots": shots}
+	return {"life": life.snapshot(), "training": training.snapshot(), "ruin": ruin.run.snapshot(), "shots": shots}
 
 func restore(data: Variant) -> void:
 	life.restore(data.get("life") if data is Dictionary else null)
 	training.restore(data.get("training") if data is Dictionary else null)
+	ruin.restore(data.get("ruin") if data is Dictionary else null)
 	for shot in projectiles:
 		shot.node.queue_free()
 	projectiles.clear()
@@ -152,7 +187,9 @@ func physics(delta: float) -> void:
 		return
 	var player := game.player as PixelActor
 	var player_pos := player.position
-	training.tick(life, player_pos, Input.is_physical_key_pressed(KEY_SHIFT), delta)
+	ruin.physics(delta)
+	if not RuinRun.inside(player_pos):
+		training.tick(life, player_pos, Input.is_physical_key_pressed(KEY_SHIFT), delta)
 	if life.hp <= 0.0:
 		player.position = Vector3(0.85, 0.10, 4.28)
 		life.hp = life.max_hp() * 0.65
@@ -232,6 +269,7 @@ func start_build(kind: String) -> void:
 
 func cancel_build() -> void:
 	build_kind = ""
+	moving_piece = -1
 	housing.hide_preview()
 	ui.build_hint("")
 
@@ -241,15 +279,20 @@ func place_piece(plot: String, cell: Vector2i) -> String:
 	var reason := _placement(plot, cell)
 	if not reason.is_empty():
 		return reason
+	if moving_piece >= 0:
+		var moved := life.estate.move(PlayerLife.ID, moving_piece, cell, build_dir)
+		if moved.is_empty():
+			cancel_build()
+		return moved
 	return life.estate.install(PlayerLife.ID, plot, build_kind, cell, build_dir, life.bag)
 
 func _placement(plot: String, cell: Vector2i) -> String:
 	if not _near_plot():
 		return "Aproxime-se do seu terreno."
-	var reason := life.estate.check(PlayerLife.ID, plot, build_kind, cell, build_dir)
+	var reason := life.estate.check_move(PlayerLife.ID, moving_piece, cell, build_dir) if moving_piece >= 0 else life.estate.check(PlayerLife.ID, plot, build_kind, cell, build_dir)
 	if not reason.is_empty():
 		return reason
-	if not life.bag.has(Homestead.PIECES[build_kind].cost):
+	if moving_piece < 0 and not life.bag.has(Homestead.PIECES[build_kind].cost):
 		return "Materiais insuficientes."
 	var center := Homestead.center(plot, cell)
 	if Homestead.PIECES[build_kind].layer == "edge":
@@ -309,10 +352,32 @@ func perform(verb: String, id: String) -> String:
 				return "Fique fora das quatro células centrais antes de montar."
 			var result := life.estate.starter(PlayerLife.ID, plot, life.bag)
 			return "Casa inicial montada." if result.is_empty() else result
+		"remove_piece", "move_piece":
+			if not _near_plot() or not id.is_valid_int():
+				return "Aproxime-se do seu lote."
+			var index := int(id)
+			if index < 0 or index >= life.estate.pieces.size():
+				return "Peça indisponível."
+			var part := life.estate.pieces[index]
+			if part.plot != life.estate.owned(PlayerLife.ID):
+				return "Este terreno exige permissão do proprietário."
+			if verb == "move_piece":
+				if part.kind not in ["chair", "flowers"]:
+					return "Somente bancos e vasos podem ser movidos."
+				start_build(part.kind)
+				moving_piece = index
+				build_dir = part.dir
+				return "Escolha um novo encaixe."
+			if part.kind == "garden" and life.plants.has("%d:%d" % [part.cell.x, part.cell.y]):
+				return "Colha a plantação antes de remover o canteiro."
+			var result := life.estate.remove(PlayerLife.ID, index)
+			return "Peça removida." if result.is_empty() else result
 		"plant":
 			var args := id.split(":")
 			if _near_plot() and args.size() == 3 and args[0].is_valid_int() and args[1].is_valid_int():
-				success = life.farm(Vector2i(int(args[0]), int(args[1])), args[2], game.simulation.clock.elapsed, game.raining)
+				var clock: WorldClock = game.simulation.clock
+				var climate: Dictionary = game.simulation.climate.sample(clock.total_day(), clock.hour())
+				success = life.farm(Vector2i(int(args[0]), int(args[1])), args[2], clock.elapsed, game.raining, climate.temperature)
 	return "Concluído." if success else "Ação indisponível. Confira local, requisitos, estoque, capacidade e saldo."
 
 func _register() -> void:
@@ -342,6 +407,9 @@ func _register() -> void:
 				game.hud.show_message("Recurso indisponível ou inventário cheio."), 1.55)
 
 func _attack() -> void:
+	if RuinRun.inside(game.player.position):
+		ruin.cast()
+		return
 	var player := game.player as PixelActor
 	var position := player.position
 	if position.distance_squared_to(TrainingSession.CENTER) > 12.0 * 12.0:
