@@ -14,6 +14,7 @@ var ruin := ValeRuin.new()
 var frontier := FrontierTrade.new()
 var guild := GuildLedger.new()
 var caravan := ValeCaravan.new()
+var authority := ValeAuthority.new()
 var housing := ValeHousing.new()
 var ui := ValeLifeUI.new()
 var game: Node3D
@@ -42,6 +43,8 @@ func setup(scene: Node3D) -> void:
 	ruin.setup(game, self)
 	game.add_child(caravan)
 	caravan.setup(game, frontier)
+	game.diorama.add_child(authority)
+	authority.setup(game, self)
 	_register()
 	default_appearance = Vector2i.ZERO
 
@@ -136,7 +139,7 @@ func snapshot() -> Dictionary:
 	for shot in projectiles:
 		var p: Vector3 = shot.node.position
 		shots.append({"at": [p.x, p.y, p.z], "target": shot.target, "amount": shot.amount})
-	return {"life": life.snapshot(), "training": training.snapshot(), "ruin": ruin.run.snapshot(), "frontier": frontier.snapshot(), "guild": guild.snapshot(), "shots": shots}
+	return {"life": life.snapshot(), "training": training.snapshot(), "ruin": ruin.run.snapshot(), "frontier": frontier.snapshot(), "guild": guild.snapshot(), "authority": authority.snapshot(), "shots": shots}
 
 func restore(data: Variant) -> void:
 	life.restore(data.get("life") if data is Dictionary else null)
@@ -145,6 +148,7 @@ func restore(data: Variant) -> void:
 	frontier.restore(data.get("frontier") if data is Dictionary else null)
 	guild.restore(data.get("guild") if data is Dictionary else null, life, frontier)
 	caravan.reset()
+	authority.restore(data.get("authority") if data is Dictionary else null)
 	for shot in projectiles:
 		shot.node.queue_free()
 	projectiles.clear()
@@ -197,6 +201,7 @@ func physics(delta: float) -> void:
 	var player_pos := player.position
 	ruin.physics(delta)
 	caravan.advance(life, guild, delta)
+	authority.advance(delta)
 	if not RuinRun.inside(player_pos):
 		training.tick(life, player_pos, Input.is_physical_key_pressed(KEY_SHIFT), delta)
 	if life.hp <= 0.0:
@@ -255,8 +260,11 @@ func input_event(event: InputEvent) -> bool:
 		_toggle("build")
 	elif _key(event, KEY_M):
 		_toggle("contracts")
+	elif _key(event, KEY_L):
+		_toggle("justice")
 	elif _key(event, KEY_F):
-		_attack()
+		if not authority.detained():
+			_attack()
 	else:
 		return false
 	return true
@@ -339,6 +347,8 @@ func open_near(page: String) -> void:
 func perform(verb: String, id: String) -> String:
 	if not active():
 		return "Registre seu personagem."
+	if verb.begins_with("secret_") or verb in ["royal", "fine"]:
+		return authority.perform(verb, id)
 	var success := false
 	match verb:
 		"use": success = life.use_item(id) or life.equip(id)
@@ -358,7 +368,7 @@ func perform(verb: String, id: String) -> String:
 			var with_escort := verb == "dispatch_escort"
 			var can_escort: bool = guild.member == life.profile.get("uid", "") and not guild.member.is_empty() and not guild.escort and guild.treasury >= GuildLedger.PAY
 			success = game.player.position.distance_to(FrontierTrade.ORIGIN) <= 2.5 and (not with_escort or can_escort)
-			success = success and frontier.dispatch(life, game.simulation.clock.total_day())
+			success = success and frontier.dispatch(life, game.simulation.clock.total_day(), authority.works.road_closed)
 			if success:
 				caravan.reset()
 				if with_escort:

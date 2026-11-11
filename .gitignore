@@ -1,4 +1,12 @@
 .godot/
 *.tmp
 build/
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.zip
+*.exe
+*.log
 

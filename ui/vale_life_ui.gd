@@ -270,18 +270,70 @@ func open(next_page: String) -> void:
 			var weather := region.climate.sample(clock.total_day(), clock.hour())
 			_body_text("%s · %d °C · saldo %d ouro" % [weather.weather, roundi(weather.temperature), life.gold])
 			var picker := _pick(FrontierTrade.GOODS, func(id: String) -> String:
-				return "%s · %d ouro · estoque %d" % [LifeCatalog.label(id), region.price(id), region.stock[id]])
+				return "%s · %d ouro · estoque %d" % [LifeCatalog.label(id), region.retail_price(id), region.stock[id]])
 			_button(body, "Comprar 1", func() -> void: _perform("frontier_buy", _selected(picker)))
 			_button(body, "Vender 1", func() -> void: _perform("frontier_sell", _selected(picker)))
 			for index in range(region.history.size() - 1, maxi(-1, region.history.size() - 5), -1):
 				_body_text(region.history[index])
+		"underworld":
+			_reset(next_page, "ARMAZÉM DO JUNCO", "Mira do Junco")
+			var secret: Underworld = service.authority.underworld
+			_body_text("%s · reputação %d · taxas arrecadadas %d ouro" % [Underworld.NAME, secret.reputation, secret.fee_total])
+			_body_text("Mira do Junco · líder / Téo da Estrada · batedor\nTesouro da Irmandade · %d ouro" % secret.treasury)
+			if secret.member.is_empty():
+				_action("Entrar na Irmandade · 4 ouro", "secret_join", "")
+			else:
+				for lot in secret.market:
+					var owner: String = lot.owner_name if not lot.owner_name.is_empty() else "proprietário sem nome no registro"
+					_body_text("%s · %s · %d fardo" % [lot.origin, owner, lot.quantity])
+					_action("Comprar fardo rastreado · 7 ouro", "secret_buy", lot.id)
+				for lot in secret.carried:
+					_body_text("%s · %s" % [lot.origin, lot.state])
+					_action("Revender fardo · 3 ouro líquidos", "secret_sell", lot.id)
+					if secret.contract:
+						_action("Entregar fardo do contrato", "secret_deliver", lot.id)
+				if not secret.contract and not secret.paid_contract:
+					_action("Aceitar contrato · paga 4 ouro", "secret_contract", "")
+			for index in range(secret.history.size() - 1, maxi(-1, secret.history.size() - 5), -1):
+				_body_text(secret.history[index])
+		"justice":
+			_reset(next_page, "REGISTRO REGIONAL", "Guarda e justiça")
+			var law: RegionalJustice = service.authority.justice
+			var now: float = service.game.simulation.clock.elapsed
+			_body_text("%s · %d condenações" % [law.state(now).replace("_", " "), law.convictions])
+			if not law.case_file.is_empty():
+				_body_text("Região: %s · testemunha: %s · multa: %d ouro" % [law.case_file.region, law.case_file.witness, law.case_file.fine])
+				_action("Quitar multa no posto da guarda", "fine", "")
+			if law.jail_until > now:
+				_body_text("Pena restante: %d s · saldo penal: %d ouro" % [ceili(law.jail_until - now), law.debt])
+			for index in range(law.record.size() - 1, maxi(-1, law.record.size() - 7), -1):
+				_body_text(law.record[index].detail)
+		"works":
+			_reset(next_page, "PREFEITURA DO VALE", "Propostas a Rei Aldren")
+			var works: CivicWorks = service.authority.works
+			_body_text("Tesouro da Coroa · %d ouro" % life.treasury)
+			if works.road_closed:
+				_body_text("Acesso norte interditado pela enchente. Use a ponte de pedra.")
+			if not works.approved.is_empty():
+				_body_text("%s · %s · %d/4 materiais aplicados" % [CivicWorks.OPTIONS[works.approved.id].name, works.stage(), works.approved.done])
+			for id in CivicWorks.OPTIONS:
+				var option: Dictionary = CivicWorks.OPTIONS[id]
+				var price := " · %d ouro" % option.price if option.has("price") else ""
+				_action(option.name + price, "royal", id)
+			for index in range(works.decisions.size() - 1, maxi(-1, works.decisions.size() - 5), -1):
+				_body_text(works.decisions[index])
 		"freight":
 			_reset(next_page, "COMÉRCIO REGIONAL", "Frete para Brumária")
 			var region: FrontierTrade = service.frontier
 			_body_text("A carroça leva 3 trigos até o mercado de Brumária. O pagamento fica reservado e só é liberado na chegada.")
 			_body_text("Entregas concluídas · %d" % region.deliveries)
+			var detour: bool = service.authority.works.road_closed
+			if detour:
+				_body_text("Acesso norte interditado · desvio pela ponte de pedra · custo de 3 ouro por novo frete.")
+			if service.authority.escort_bonus > 0:
+				_body_text("Aviso da Coroa após emboscada · prêmio de %d ouro na próxima escolta válida." % service.authority.escort_bonus)
 			if region.shipment.is_empty():
-				_action("Carregar 3 trigos · %d ouro na entrega" % (region.price("wheat") * 3), "dispatch", "")
+				_action("Carregar 3 trigos · %d ouro na entrega" % region.freight_pay(detour), "dispatch", "")
 				if not service.guild.member.is_empty():
 					_action("Carregar e assinar escolta", "dispatch_escort", "")
 			else:

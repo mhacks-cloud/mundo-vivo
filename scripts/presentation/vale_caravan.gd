@@ -93,6 +93,7 @@ func advance(life: PlayerLife, guild: GuildLedger, delta: float) -> void:
 		raider.show()
 		raid_timer = 1.1
 		game.simulation.economy.journal.record(game.simulation.clock, "raid", "Uma carroça foi interceptada perto de Brumária.")
+		game.career.authority.raid_alert(actor.position)
 		if game.player.position.distance_to(actor.position) < 14.0:
 			game.hud.show_message("Emboscada na carroça. F defende o frete.")
 	if trade.shipment.risk == 1:
@@ -102,7 +103,10 @@ func advance(life: PlayerLife, guild: GuildLedger, delta: float) -> void:
 		cursor += 1
 	if cursor >= route.size():
 		if trade.arrive(life):
+			var renown := guild.reputation
 			guild.finish(life)
+			if guild.reputation > renown:
+				game.career.authority.reward_escort()
 		return
 	var origin := actor.position
 	var offset := route[cursor] - origin
@@ -158,6 +162,7 @@ func defend(life: PlayerLife) -> bool:
 	trade.shipment.raider -= 17.0
 	if trade.shipment.raider <= 0:
 		life.award(12)
+		game.career.authority.award_bounty()
 		_end_raid()
 	return true
 

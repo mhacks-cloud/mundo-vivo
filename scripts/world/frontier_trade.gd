@@ -13,6 +13,9 @@ var history: Array[String] = []
 var deliveries := 0
 var loot: Dictionary = {}
 var last_day := -1
+var shortages := 0
+var warehouse := false
+var road_closed := false
 var climate := RegionalClimate.new()
 
 func _init() -> void:
@@ -23,11 +26,15 @@ func _init() -> void:
 func price(id: String) -> int:
 	if id not in GOODS:
 		return 0
-	var factor := clampf(1.58 - int(stock[id]) * 0.045, 0.78, 1.58)
+	var factor := clampf(1.58 - int(stock[id]) * 0.045 + (shortages * 0.23 if id == "wheat" else 0.0), 0.78, 1.85)
 	return maxi(2, roundi(float(LifeCatalog.GOODS[id][4]) * factor))
 
+func retail_price(id: String) -> int:
+	var base := price(id)
+	return base + (1 if id == "wheat" and road_closed else 0)
+
 func buy(life: PlayerLife, id: String) -> bool:
-	var charge := price(id)
+	var charge := retail_price(id)
 	if life.profile.is_empty() or charge == 0 or stock[id] <= 0 or life.gold < charge or not life.bag.add(id, 1):
 		return false
 	var tax := maxi(1, floori(charge * 0.12))
@@ -42,7 +49,7 @@ func buy(life: PlayerLife, id: String) -> bool:
 func sell(life: PlayerLife, id: String) -> bool:
 	var quote := price(id)
 	var credit := maxi(1, floori(quote * 0.4))
-	if life.profile.is_empty() or quote == 0 or purse < credit or stock[id] >= 999 or not life.bag.spend({id: 1}):
+	if life.profile.is_empty() or quote == 0 or purse < credit or stock[id] >= (999 if warehouse else 120) or not life.bag.spend({id: 1}):
 		return false
 	stock[id] += 1
 	purse -= credit
@@ -51,13 +58,17 @@ func sell(life: PlayerLife, id: String) -> bool:
 	life.logbook("Brumária · +%d ouro" % credit)
 	return true
 
-func dispatch(life: PlayerLife, day: int) -> bool:
-	var reserved := price("wheat") * BATCH
+func freight_pay(detour := false) -> int:
+	return maxi(1, price("wheat") * BATCH - (3 if detour else 0))
+
+func dispatch(life: PlayerLife, day: int, detour := false) -> bool:
+	var reserved := freight_pay(detour)
 	if life.profile.is_empty() or not shipment.is_empty() or day <= last_day or purse < reserved or not life.bag.spend({"wheat": BATCH}):
 		return false
 	purse -= reserved
 	shipment = {"quantity": BATCH, "pay": reserved, "position": ORIGIN, "risk": 0 if day % 3 == 2 else 2,
-		"guard": 3, "raider": 31.0}
+		"guard": 3, "raider": 31.0, "owner": life.profile.get("uid", ""),
+		"origin": "%s:%d" % [life.profile.get("uid", ""), day], "owner_name": life.profile.name}
 	last_day = day
 	_record("Carroça saiu do Vale com %d trigos." % BATCH)
 	life.logbook("Frete para Brumária · 3 trigos carregados")
@@ -67,10 +78,11 @@ func arrive(life: PlayerLife) -> bool:
 	if shipment.is_empty() or shipment.position.distance_squared_to(DESTINATION) > 0.4 * 0.4:
 		return false
 	var quantity: int = shipment.quantity
-	if stock.wheat + quantity > 999:
+	if stock.wheat + quantity > (999 if warehouse else 120):
 		return false
 	var payment: int = shipment.pay
 	stock.wheat += quantity
+	shortages = maxi(0, shortages - 1)
 	life.gold += payment
 	deliveries += 1
 	shipment.clear()
@@ -82,13 +94,16 @@ func lose(now: float) -> bool:
 	if shipment.is_empty():
 		return false
 	purse += int(shipment.pay)
-	loot = {"quantity": shipment.quantity, "position": shipment.position, "expires": now + 120.0}
+	loot = {"quantity": shipment.quantity, "position": shipment.position, "expires": now + 120.0,
+		"owner": shipment.owner, "origin": shipment.origin, "owner_name": shipment.owner_name}
 	shipment.clear()
-	_record("A carroça foi derrotada. A carga caiu no caminho.")
+	shortages = mini(5, shortages + 1)
+	stock.wheat = maxi(0, int(stock.wheat) - 1)
+	_record("Frete perdido. A demanda local consumiu uma unidade do estoque de trigo.")
 	return true
 
 func collect(life: PlayerLife, position: Vector3, now: float) -> bool:
-	if loot.is_empty() or now >= float(loot.expires) or position.distance_to(loot.position) > 1.8:
+	if loot.is_empty() or (not loot.owner.is_empty() and loot.owner != life.profile.get("uid", "")) or now >= float(loot.expires) or position.distance_to(loot.position) > 1.8:
 		return false
 	if not life.bag.add("wheat", int(loot.quantity)):
 		return false
@@ -111,7 +126,7 @@ func snapshot() -> Dictionary:
 		var p: Vector3 = loot.position
 		fallen.position = [p.x, p.z]
 	return {"loot": fallen, "stock": stock.duplicate(), "purse": purse, "treasury": treasury, "shipment": load_state,
-		"history": history.duplicate(), "deliveries": deliveries, "last_day": last_day}
+		"history": history.duplicate(), "deliveries": deliveries, "last_day": last_day, "shortages": shortages}
 
 func restore(data: Variant) -> void:
 	stock = {"wheat": 2, "wood": 7, "iron": 15, "herb": 3, "health": 2}
@@ -119,6 +134,9 @@ func restore(data: Variant) -> void:
 	treasury = 70
 	last_day = -1
 	deliveries = 0
+	shortages = 0
+	warehouse = false
+	road_closed = false
 	shipment.clear()
 	loot.clear()
 	history.clear()
@@ -126,6 +144,7 @@ func restore(data: Variant) -> void:
 		return
 	purse = int(LifeCatalog.number(data.get("purse"), purse, 0, 1000000))
 	treasury = int(LifeCatalog.number(data.get("treasury"), treasury, 0, 1000000))
+	shortages = int(LifeCatalog.number(data.get("shortages"), 0, 0, 5))
 	last_day = int(LifeCatalog.number(data.get("last_day"), -1, -1, 3650000))
 	deliveries = int(LifeCatalog.number(data.get("deliveries"), 0, 0, 3650000))
 	if data.get("stock") is Dictionary:
@@ -144,9 +163,14 @@ func restore(data: Variant) -> void:
 			shipment = {"quantity": BATCH, "pay": payment, "position": p,
 				"risk": int(LifeCatalog.number(load_state.get("risk"), 2, 0, 2)),
 				"guard": int(LifeCatalog.number(load_state.get("guard"), 3, 0, 3)),
-				"raider": LifeCatalog.number(load_state.get("raider"), 31.0, 0, 31.0)}
+				"raider": LifeCatalog.number(load_state.get("raider"), 31.0, 0, 31.0),
+				"owner": str(load_state.get("owner", "")).left(80), "owner_name": str(load_state.get("owner_name", "")).left(40),
+				"origin": str(load_state.get("origin", "legacy:%d" % last_day)).left(96)}
 	var fallen: Variant = data.get("loot")
-	if fallen is Dictionary and fallen.get("quantity") == BATCH and fallen.get("position") is Array and fallen.position.size() == 2:
+	if fallen is Dictionary and int(LifeCatalog.number(fallen.get("quantity"), 0, 0, BATCH)) > 0 and fallen.get("position") is Array and fallen.position.size() == 2:
 		var p := Vector3(LifeCatalog.number(fallen.position[0], ORIGIN.x, -30, 32), 0.10,
 			LifeCatalog.number(fallen.position[1], ORIGIN.z, -32, 32))
-		loot = {"quantity": BATCH, "position": p, "expires": LifeCatalog.number(fallen.get("expires"), 0, 0, 3.0e10)}
+		loot = {"quantity": int(LifeCatalog.number(fallen.get("quantity"), 1, 1, BATCH)),
+			"position": p, "expires": LifeCatalog.number(fallen.get("expires"), 0, 0, 3.0e10),
+			"owner": str(fallen.get("owner", "")).left(80), "owner_name": str(fallen.get("owner_name", "")).left(40),
+			"origin": str(fallen.get("origin", "legacy:%d" % last_day)).left(96)}

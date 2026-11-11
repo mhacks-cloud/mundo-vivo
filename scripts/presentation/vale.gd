@@ -105,7 +105,7 @@ func _ready() -> void:
 	_camera_frame(1.0)
 	_refresh_quality()
 	_refresh_environment(0.16)
-	hud.update_bridge(simulation.construction)
+	hud.update_bridge(simulation.construction, career.authority.works.road_closed)
 	hud.show_message("A vila está em movimento. J abre o diário do vale.", 5.5)
 
 func _process(delta: float) -> void:
@@ -126,7 +126,7 @@ func _physics_process(delta: float) -> void:
 	if not career.setup_stage.is_empty():
 		return
 	career.physics(delta)
-	var input := Input.get_vector("left", "right", "up", "down")
+	var input := Vector2.ZERO if career.authority.detained() else Input.get_vector("left", "right", "up", "down")
 	var right := camera.global_basis.x
 	var forward := Vector3.UP.cross(right)
 	var move := right * input.x - forward * input.y
@@ -135,7 +135,7 @@ func _physics_process(delta: float) -> void:
 	player.pose(player.get_real_velocity(), right, sprite_light)
 	hidden_marker.visible = diorama.camera_visibility(camera.position, player.position + Vector3.UP * 0.83)
 	if nav_dirty:
-		navigation.rebuild(diorama, simulation.construction.complete())
+		navigation.rebuild(diorama, simulation.construction.complete() and not career.authority.works.road_closed)
 		nav_dirty = false
 	for i in people.size():
 		_move_resident(i, right, delta)
@@ -514,7 +514,7 @@ func _bridge_changed() -> void:
 		if was_open != bridge.complete():
 			nav_dirty = true
 	bridge_target.label = "Ponte nova" if bridge.complete() else "Canteiro · entregar uma carga"
-	hud.update_bridge(bridge)
+	hud.update_bridge(bridge, career.authority.works.road_closed)
 
 func _save() -> void:
 	var state := simulation.snapshot()

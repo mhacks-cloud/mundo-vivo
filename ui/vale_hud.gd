@@ -113,8 +113,8 @@ func update_clock(clock: WorldClock, season: String, sample: Dictionary) -> void
 	time.text = clock.time_text()
 	weather.text = "%s   ·   %d °C" % [sample.weather, roundi(sample.temperature)]
 
-func update_bridge(construction: ConstructionManager) -> void:
-	bridge.text = construction.status()
+func update_bridge(construction: ConstructionManager, road_closed := false) -> void:
+	bridge.text = "Interditada · use a ponte de pedra" if road_closed else construction.status()
 	fill.value = [0, 2, 5, 8][construction.stage] + construction.delivered
 
 func update_options(quality: String, focus: bool) -> void:
