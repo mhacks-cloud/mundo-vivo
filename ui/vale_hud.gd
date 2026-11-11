@@ -7,6 +7,7 @@ const SILVER := Color("c3cbb6")
 var title_font := SystemFont.new()
 var ui_font := SystemFont.new()
 var date: Label
+var region_title: Label
 var time: Label
 var weather: Label
 var bridge: Label
@@ -35,7 +36,7 @@ func _ready() -> void:
 	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var identity := _panel(canvas, Control.PRESET_TOP_LEFT, Vector4(22, 20, 224, 81), 0.78)
 	_label(identity, "M U N D O   V I V O", 10, GOLD)
-	_label(identity, "Vale do Amieiro", 24, CREAM, true)
+	region_title = _label(identity, "Vale do Amieiro", 24, CREAM, true)
 	var calendar := _panel(canvas, Control.PRESET_TOP_RIGHT, Vector4(-218, 20, -22, 98), 0.78)
 	date = _label(calendar, "", 12, GOLD)
 	time = _label(calendar, "", 23, CREAM, true)

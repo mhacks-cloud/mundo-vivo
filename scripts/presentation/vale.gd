@@ -316,6 +316,7 @@ func _refresh_environment(delta: float) -> void:
 	if valley.weather == "Chuva":
 		simulation.economy.rain(simulation.clock)
 	var at := player.position
+	var underground := RuinRun.inside(at)
 	var on_frontier := at.x > 16.8 and at.x < 33.0 and at.z < -4.0
 	var region := career.frontier.climate if on_frontier else simulation.climate
 	var climate := region.sample(day, hour) if on_frontier else valley
@@ -340,7 +341,7 @@ func _refresh_environment(delta: float) -> void:
 	atmosphere.ground_bottom_color = Color("26353c").lerp(Color("738060"), light)
 	env.fog_light_color = fog
 	env.fog_density = 0.0023 + wet_blend * 0.014 + (0.009 if mist else 0.0)
-	precipitation.set_shader_parameter("strength", wet_blend * 0.78)
+	precipitation.set_shader_parameter("strength", 0.0 if underground else wet_blend * 0.78)
 	precipitation.set_shader_parameter("snow", climate.weather == "Neve")
 	for lamp in diorama.lanterns:
 		lamp.light_energy = float(lamp.get_meta("base_energy")) * (1.02 - light * 0.83)
@@ -349,6 +350,15 @@ func _refresh_environment(delta: float) -> void:
 		halo.modulate.a = (0.8 - light * 0.73) * (0.94 + sin(visual_time * 3.4 + halo.position.x) * 0.06)
 	diorama.palette.materials.glass.emission_energy_multiplier = lerpf(0.92, 0.22, light)
 	sprite_light = sprite_light.lerp(Color("768bb1").lerp(Color("fff2da"), light * (1.0 - wet_blend * 0.19)), clampf(delta * 3.0, 0.0, 1.0))
+	env.background_mode = Environment.BG_COLOR if underground else Environment.BG_SKY
+	if underground:
+		env.background_color = Color("111419")
+		env.ambient_light_color = Color("aeb2c3")
+		env.ambient_light_energy = 0.33
+		env.fog_density = 0.006
+		env.fog_light_color = Color("1b1d26")
+		sun.light_energy = 0.13
+	hud.region_title.text = "Ruína da Serra" if underground else "Brumária" if on_frontier else "Vale do Amieiro"
 	hud.update_clock(simulation.clock,
 		region.seasons.name_for(day, region.latitude), climate)
 

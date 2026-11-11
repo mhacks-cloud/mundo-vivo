@@ -31,7 +31,7 @@ Validado no Windows com Godot 4.7.2 e renderizador Compatibility/OpenGL. O proje
 
 Saia do caminho de terra para chegar à praça. A **Raposa Dourada** fica ao norte do poço e a **Forja do Amieiro** a oeste. A horta fica atrás da forja. Atravesse a ponte de pedra e siga a trilha para o norte para chegar à entrada da Ruína da Serra.
 
-A segunda ponte fica rio acima, na margem da vila. Use **E** no depósito para recolher o recurso disponível e **E** no canteiro para descarregar. Ivo e Mara também buscam as cargas e montam a estrutura. A travessia abre após oito instalações e a inspeção. **F5** guarda o estado em `user://vale_do_amieiro.json`. O último salvamento é lido ao iniciar.
+A segunda ponte fica rio acima, na margem da vila. Use **E** no depósito para recolher o recurso disponível e **E** no canteiro para descarregar. Ivo e Mara também buscam as cargas e montam a estrutura. A travessia abre após oito instalações e a inspeção. **F5** grava o mundo da partida selecionada. Escolha a partida no menu inicial para continuar.
 
 Para acompanhar a economia, visite a horta atrás da forja e a banca junto à Raposa Dourada. O quadro público fica perto do banco a nordeste do poço. O diário (**J**) registra as colheitas, entregas, compras, trabalhos, cumprimentos e ocorrências da vila.
 

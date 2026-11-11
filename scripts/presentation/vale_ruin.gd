@@ -13,6 +13,7 @@ var ally_attack := 0.0
 func setup(scene: Node3D, controller: ValeLife) -> void:
 	game = scene
 	career = controller
+	_box(Vector3(59.5, -0.86, -19), Vector3(66, 0.7, 56), "dark")
 	_box(Vector3(59.5, -0.18, -19), Vector3(23, 0.36, 11), "stone")
 	_wall(Vector3(59.5, 1.12, -24.5), Vector3(23, 2.24, 0.48))
 	_wall(Vector3(59.5, 1.12, -13.5), Vector3(23, 2.24, 0.48))
@@ -21,6 +22,26 @@ func setup(scene: Node3D, controller: ValeLife) -> void:
 	_wall(Vector3(60.4, 1.12, -22.9), Vector3(0.65, 2.24, 3.2))
 	_wall(Vector3(60.4, 1.12, -15.1), Vector3(0.65, 2.24, 3.2))
 	gate = _wall(Vector3(60.4, 1.12, -19), Vector3(0.26, 2.24, 4.6), "wood")
+	var gate_face: Node3D = gate.get_meta("facade")
+	for z in [-2.0, -1.2, -0.4, 0.4, 1.2, 2.0]:
+		var beam := _box(gate.position + Vector3(0, 0, z), Vector3(0.36, 2.26, 0.12), "iron")
+		beam.reparent(gate_face)
+	for x in [50.0, 54.3, 58.6, 63.0, 67.3]:
+		for z in [-24.10, -13.9]:
+			_box(Vector3(x, 1.0, z), Vector3(0.77, 2.04, 0.62), "mossstone")
+			_box(Vector3(x, 0.16, z), Vector3(0.98, 0.30, 0.78), "stone")
+			_box(Vector3(x, 1.92, z), Vector3(0.97, 0.22, 0.73), "stone")
+	for x in range(49, 72):
+		for side in [-1.0, 1.0]:
+			var rock := MeshInstance3D.new()
+			var mesh := SphereMesh.new()
+			mesh.radial_segments = 7
+			mesh.rings = 3
+			rock.mesh = mesh
+			rock.position = Vector3(x + sin(float(x)) * 0.48, -0.32, -19.0 + side * (6.4 + cos(float(x)) * 0.87))
+			rock.scale = Vector3(1.55 + 0.6 * sin(float(x) * 0.8), 1.25 + 0.4 * cos(float(x) * 0.9), 1.66)
+			rock.material_override = game.diorama.palette.materials.mossstone
+			add_child(rock)
 	for point in [Vector3(50, 0, -23.8), Vector3(56, 0, -23.8), Vector3(56, 0, -14.2), Vector3(63, 0, -23.8), Vector3(68, 0, -14.2)]:
 		_box(point + Vector3.UP * 0.96, Vector3(0.13, 1.92, 0.13), "wood")
 		_box(point + Vector3.UP * 1.96, Vector3(0.23, 0.31, 0.23), "fire")

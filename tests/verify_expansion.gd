@@ -121,12 +121,16 @@ func _run() -> void:
 	career.ruin.leave()
 	check(vale.player.position.is_equal_approx(RuinRun.EXIT), "saída devolve o jogador ao Vale")
 	var valley_stock: VillageInventory = vale.simulation.economy.stock
-	valley_stock.add("market", "trigo", 3)
-	var initial_wheat := valley_stock.amount("market", "trigo")
 	vale.simulation.clock.elapsed = WorldClock.DAY_SECONDS * 10 / 24
+	var town_log: VillageJournal = vale.simulation.economy.journal
+	for i in 4200:
+		await physics_frame
+		if valley_stock.amount("market", "trigo") > 0 and town_log.entries.any(func(item: Dictionary) -> bool: return item.kind == "delivery"):
+			break
+	var initial_wheat := valley_stock.amount("market", "trigo")
 	vale.player.position = ValeLife.STATIONS.store
 	check(career.perform("buy", "wheat") == "Concluído." and valley_stock.amount("market", "trigo") == initial_wheat - 1,
-		"jogador compra do estoque real da banca do Vale")
+		"jogador compra o trigo produzido e entregue pelos NPCs")
 	life.bag.add("wheat", 2)
 	vale.player.position = GuildLedger.HALL
 	check(career.perform("join_guild", "") == "Concluído." and career.guild.member == id, "sede registra o membro pelo identificador persistente")
@@ -147,9 +151,11 @@ func _run() -> void:
 	check(not trade.shipment.is_empty() and trade.shipment.position.distance_to(FrontierTrade.ORIGIN) > 1.5
 		and trade.stock.wheat == frontier_wheat, "carroça avança fisicamente sem entregar à distância")
 	var position: Vector3 = trade.shipment.position
+	var saved_wheat := valley_stock.amount("market", "trigo")
 	vale._save()
 	vale._load(true)
-	check(trade.shipment.position.is_equal_approx(position), "posição e carga do frete persistem")
+	check(trade.shipment.position.is_equal_approx(position) and valley_stock.amount("market", "trigo") == saved_wheat,
+		"posição, carga e estoque da banca persistem")
 	for i in 3900:
 		if not trade.shipment.is_empty():
 			vale.player.position = trade.shipment.position
