@@ -82,6 +82,22 @@ func finish(life: PlayerLife, delivered := true) -> void:
 		treasury += PAY
 		_record("Escolta sem entrega válida · reserva devolvida à Companhia.")
 
+func reserve_highland_escort(life: PlayerLife) -> bool:
+	if not _member(life) or treasury < PAY:
+		return false
+	treasury -= PAY
+	_record("Escolta de Alto da Bruma contratada · 9 ouro em reserva.")
+	return true
+
+func settle_highland_escort(life: PlayerLife, delivered: bool, traveled_distance: float, covered_distance: float) -> void:
+	if delivered and _member(life) and traveled_distance >= 5.0 and covered_distance / traveled_distance >= 0.60:
+		life.gold += PAY
+		reputation += 1
+		_record("Escolta de Alto da Bruma concluída · 9 ouro e 1 reputação.")
+	else:
+		treasury += PAY
+		_record("Reserva da escolta de Alto da Bruma devolvida.")
+
 func _member(life: PlayerLife) -> bool:
 	return not member.is_empty() and member == life.profile.get("uid", "")
 

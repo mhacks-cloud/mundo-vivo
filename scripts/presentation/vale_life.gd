@@ -60,6 +60,7 @@ func new_game() -> void:
 		ui.feedback.text = "Não foi possível criar a pasta de personagens."
 		return
 	game.save_path = path
+	game.realms.reset()
 	start_setup()
 
 func open_save(entry: Dictionary) -> void:
@@ -347,6 +348,8 @@ func open_near(page: String) -> void:
 func perform(verb: String, id: String) -> String:
 	if not active():
 		return "Registre seu personagem."
+	if verb.begins_with("bruma_"):
+		return game.realms.perform(verb, id)
 	if verb.begins_with("secret_") or verb in ["royal", "fine"]:
 		return authority.perform(verb, id)
 	var success := false
@@ -451,7 +454,7 @@ func _attack() -> void:
 	if RuinRun.inside(game.player.position):
 		ruin.cast()
 		return
-	if caravan.defend(life):
+	if game.realms.defend() or caravan.defend(life):
 		return
 	var player := game.player as PixelActor
 	var position := player.position

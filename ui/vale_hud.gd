@@ -11,6 +11,7 @@ var region_title: Label
 var time: Label
 var weather: Label
 var bridge: Label
+var work_title: Label
 var hint: Label
 var toast_label: Label
 var prefs: Label
@@ -47,13 +48,13 @@ func _ready() -> void:
 	help_panel.hide()
 	_label(footer, "WASD  Mover    ·    Q / R  Girar    ·    Roda  Zoom", 13, CREAM)
 	_label(footer, "F5  Salvar    ·    F9  Carregar    ·    T  Avançar 3 h", 12, SILVER)
-	_label(footer, "E  Interagir  ·  I  Carga  ·  J  Diário", 12, GOLD)
+	_label(footer, "E  Interagir  ·  I  Carga  ·  J  Diário  ·  P  Atlas", 12, GOLD)
 	_label(footer, "F6  Gráficos  ·  F7  Efeitos  ·  F10  HUD", 12, SILVER)
 	_label(footer, "B  Bolsa  ·  C  Ficha  ·  H  Construir  ·  M  Contratos  ·  F  Técnica", 12, GOLD)
 	var options := _panel(canvas, Control.PRESET_BOTTOM_LEFT, Vector4(22, -54, 247, -20), 0.74)
 	prefs = _label(options, "", 11, GOLD)
 	var work := _panel(canvas, Control.PRESET_BOTTOM_RIGHT, Vector4(-248, -86, -22, -20), 0.78)
-	_label(work, "P O N T E   N O V A", 10, GOLD)
+	work_title = _label(work, "P O N T E   N O V A", 10, GOLD)
 	bridge = _label(work, "", 15, CREAM, true)
 	fill = ProgressBar.new()
 	fill.max_value = 8
@@ -114,11 +115,21 @@ func update_clock(clock: WorldClock, season: String, sample: Dictionary) -> void
 	weather.text = "%s   ·   %d °C" % [sample.weather, roundi(sample.temperature)]
 
 func update_bridge(construction: ConstructionManager, road_closed := false) -> void:
+	work_title.text = "P O N T E   N O V A"
 	bridge.text = "Interditada · use a ponte de pedra" if road_closed else construction.status()
 	fill.value = [0, 2, 5, 8][construction.stage] + construction.delivered
 
+func update_regional_work(world: RealmWorld) -> void:
+	work_title.text = "C A M I N H O   A L T O"
+	bridge.text = "Desvio pela encosta" if world.damaged else "Travessia aberta"
+	fill.value = 0.0 if world.damaged else 8.0
+	if not world.project.is_empty():
+		work_title.text = "O B R A   D A   C O R O A"
+		bridge.text = RealmWorld.WORK_STEPS[world.project.step]
+		fill.value = float(world.project.done) * 2.0
+
 func update_options(quality: String, focus: bool) -> void:
-	prefs.text = "F1  Ajuda  ·  J  Diário  ·  %s" % quality
+	prefs.text = "F1  Ajuda  ·  P  Atlas  ·  %s" % quality
 	prefs.tooltip_text = "Efeitos ligados" if focus else "Efeitos desligados"
 
 func toggle_help() -> void:

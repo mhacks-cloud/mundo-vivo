@@ -16,6 +16,7 @@ var saves := SaveManager.new()
 var save_path := SaveManager.PATH
 var onboarding_enabled := true
 var career := ValeLife.new()
+var realms := ValeRealms.new()
 var diorama := ValeDiorama.new()
 var player := PixelActor.new()
 var people: Array[PixelActor] = []
@@ -94,6 +95,8 @@ func _ready() -> void:
 	_register_landmarks()
 	add_child(career)
 	career.setup(self)
+	add_child(realms)
+	realms.setup(self)
 	if onboarding_enabled and save_path == SaveManager.PATH:
 		_reset_people()
 		career.start_menu()
@@ -126,14 +129,16 @@ func _physics_process(delta: float) -> void:
 	if not career.setup_stage.is_empty():
 		return
 	career.physics(delta)
-	var input := Vector2.ZERO if career.authority.detained() else Input.get_vector("left", "right", "up", "down")
+	realms.tick(delta)
+	var input := Vector2.ZERO if career.authority.detained() or realms.map.visible else Input.get_vector("left", "right", "up", "down")
 	var right := camera.global_basis.x
 	var forward := Vector3.UP.cross(right)
 	var move := right * input.x - forward * input.y
 	player.velocity = move * 3.65
 	player.move_and_slide()
 	player.pose(player.get_real_velocity(), right, sprite_light)
-	hidden_marker.visible = diorama.camera_visibility(camera.position, player.position + Vector3.UP * 0.83)
+	var local_diorama: ValeDiorama = realms.scene if realms.world.active else diorama
+	hidden_marker.visible = local_diorama.camera_visibility(camera.position, player.position + Vector3.UP * 0.83)
 	if nav_dirty:
 		navigation.rebuild(diorama, simulation.construction.complete() and not career.authority.works.road_closed)
 		nav_dirty = false
@@ -197,6 +202,15 @@ func _move_resident(index: int, right: Vector3, delta: float) -> void:
 	npc.set_cargo(simulation.economy.stock.first(plan.id))
 	npc.pose(movement, right, sprite_light, plan.building, plan.state)
 func _unhandled_input(event: InputEvent) -> void:
+	if career.setup_stage.is_empty() and career.active():
+		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_P:
+			career.ui.hide_panel()
+			realms.map.toggle()
+			return
+		if realms.map.visible:
+			if event.is_action_pressed("ui_cancel"):
+				realms.map.hide()
+			return
 	if career.input_event(event):
 		return
 	if event.is_action_pressed("interact"):
@@ -318,8 +332,12 @@ func _refresh_environment(delta: float) -> void:
 	var at := player.position
 	var underground := RuinRun.inside(at)
 	var on_frontier := at.x > 16.8 and at.x < 33.0 and at.z < -4.0
-	var region := career.frontier.climate if on_frontier else simulation.climate
-	var climate := region.sample(day, hour) if on_frontier else valley
+	var in_bruma := realms.world.active
+	var location := realms.world.current(at)
+	var region := realms.world.regional_climate(location, simulation.climate, career.frontier.climate)
+	var climate := valley if region == simulation.climate else region.sample(day, hour)
+	if in_bruma or location == "forest":
+		raining = climate.weather in ["Chuva", "Neve"]
 	var wet: bool = climate.weather in ["Chuva", "Neve"]
 	var mist: bool = climate.weather == "Névoa"
 	var crop := simulation.economy.crop
@@ -329,6 +347,8 @@ func _refresh_environment(delta: float) -> void:
 	wet_blend = lerpf(wet_blend, 1.0 if wet else 0.0, clampf(delta * 1.9, 0.0, 1.0))
 	var season_index := region.seasons.index(day, region.latitude)
 	diorama.weather(season_index, wet, climate.weather == "Neve", light)
+	if in_bruma and is_instance_valid(realms.scene):
+		realms.scene.weather(season_index, wet, climate.weather == "Neve", light)
 	var fog := Color("222d48").lerp(Color("7d9ea1"), light)
 	sun.rotation_degrees = Vector3(-15.0 - maxf(0.0, solar) * 49.0, -66.0 - (hour - 8.5) * 8.5, 0)
 	sun.light_color = Color("8d9bd0").lerp(Color("fff0d7").lerp(Color("ffc28a"), golden), light)
@@ -358,7 +378,7 @@ func _refresh_environment(delta: float) -> void:
 		env.fog_density = 0.006
 		env.fog_light_color = Color("1b1d26")
 		sun.light_energy = 0.13
-	hud.region_title.text = "Ruína da Serra" if underground else "Brumária" if on_frontier else "Vale do Amieiro"
+	hud.region_title.text = RealmWorld.PLACES[location].name if in_bruma or location == "forest" else "Ruína da Serra" if underground else "Brumária" if on_frontier else "Vale do Amieiro"
 	hud.update_clock(simulation.clock,
 		region.seasons.name_for(day, region.latitude), climate)
 
@@ -370,6 +390,8 @@ func _refresh_quality() -> void:
 	sun.shadow_blur = 2.1 if quality == 2 else 1.55
 	camera.far = [59.0, 83.0, 115.0][quality]
 	diorama.foliage.quality(quality)
+	if is_instance_valid(realms.scene):
+		realms.scene.foliage.quality(quality)
 	env.fog_enabled = quality > 0
 	for lamp in diorama.lanterns:
 		lamp.visible = quality > 0
@@ -520,6 +542,7 @@ func _save() -> void:
 	var state := simulation.snapshot()
 	state["residents"] = residents.snapshot()
 	state["career"] = career.snapshot()
+	state["realms"] = realms.world.snapshot()
 	state["written_unix"] = Time.get_unix_time_from_system()
 	state["player"] = [player.position.x, player.position.y, player.position.z]
 	var result := saves.write_state(state, save_path)
@@ -533,6 +556,7 @@ func _load(show_feedback: bool, source := "") -> bool:
 		return false
 	simulation.restore(state)
 	career.restore(state.get("career"))
+	realms.restore(state.get("realms"))
 	if career.active() and not career.life.profile.has("uid"):
 		career.life.profile.uid = save_path.sha256_text().left(32)
 	var stamp: Variant = state.get("written_unix")

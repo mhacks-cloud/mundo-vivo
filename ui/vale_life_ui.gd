@@ -322,6 +322,47 @@ func open(next_page: String) -> void:
 				_action(option.name + price, "royal", id)
 			for index in range(works.decisions.size() - 1, maxi(-1, works.decisions.size() - 5), -1):
 				_body_text(works.decisions[index])
+		"bruma_customs":
+			_reset(next_page, "PORTÃO DE BRUMÁRIA", "Guarda da fronteira")
+			var realm: RealmWorld = service.game.realms.world
+			_body_text("%d inspeções · tarifa de %d ouro por frete" % [realm.customs, RealmWorld.ROUTES[realm.route()].cost])
+			if not realm.shipment.is_empty():
+				_body_text("Aldo · %s · %d trigos (%.2f kg)" % [realm.shipment.status.to_lower(), realm.shipment.quantity, realm.shipment.weight])
+				if not realm.shipment.escort:
+					_action("Assinar escolta da Companhia · 9 ouro", "bruma_escort", "")
+				else:
+					_body_text("Escolta ativa. Acompanhe pelo menos 60% do percurso.")
+			else:
+				_body_text("Nenhum comboio a partir.")
+		"bruma_market":
+			_reset(next_page, "CAPITAL DE BRUMÁRIA", "Mercado de Alto da Bruma")
+			var realm: RealmWorld = service.game.realms.world
+			_body_text("Saldo %d ouro · imposto de Brumária: 12%%" % life.gold)
+			var picker := _pick(RealmWorld.GOODS, func(id: String) -> String:
+				return "%s · %d ouro · estoque %d" % [LifeCatalog.label(id), realm.price(id), realm.stock[id]])
+			_button(body, "Comprar 1", func() -> void: _perform("bruma_buy", _selected(picker)))
+			_button(body, "Vender 1", func() -> void: _perform("bruma_sell", _selected(picker)))
+			var cargo: Dictionary = realm.shipment
+			if not cargo.is_empty():
+				var road := "caminho alto" if cargo.route == "ridge" else "estrada da encosta"
+				_body_text("Aldo · %s · %d trigos · %s" % [cargo.status.to_lower(), cargo.quantity, road])
+			_body_text("Entregas: %d · inspeções: %d · demanda diária: %d trigos" % [
+				realm.deliveries, realm.customs, 2 if realm.population >= 7 else 1])
+			for index in range(realm.journal.size() - 1, maxi(-1, realm.journal.size() - 5), -1):
+				_body_text(realm.journal[index])
+		"bruma_works":
+			_reset(next_page, "COROA DE BRUMÁRIA", "Rainha Elira")
+			var realm: RealmWorld = service.game.realms.world
+			_body_text("Tesouro %d ouro · %d moradores · %d moradia nova" % [realm.treasury, realm.population, realm.houses])
+			_body_text("Caminho alto: " + realm.access("ridge", false, false).to_lower())
+			if not realm.project.is_empty():
+				_body_text("%s · %s · %d/4 materiais aplicados" % [RealmWorld.WORKS[realm.project.id].name,
+					RealmWorld.WORK_STEPS[realm.project.step], realm.project.done])
+			for id in RealmWorld.WORKS:
+				var job: Dictionary = RealmWorld.WORKS[id]
+				_action("%s · %d ouro, 2 madeiras e 2 ferros" % [job.name, job.cost], "bruma_propose", id)
+			for index in range(realm.journal.size() - 1, maxi(-1, realm.journal.size() - 5), -1):
+				_body_text(realm.journal[index])
 		"freight":
 			_reset(next_page, "COMÉRCIO REGIONAL", "Frete para Brumária")
 			var region: FrontierTrade = service.frontier

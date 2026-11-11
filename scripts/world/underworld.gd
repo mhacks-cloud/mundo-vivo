@@ -27,17 +27,19 @@ func join(life: PlayerLife) -> bool:
 	return true
 
 func salvage(trade: FrontierTrade) -> bool:
-	if trade.loot.is_empty() or market.size() >= 16:
+	if trade.loot.is_empty() or not receive_lot(str(trade.loot.get("origin", "")), "Emboscada na rota do Vale",
+		str(trade.loot.get("owner", "")), str(trade.loot.get("owner_name", ""))):
 		return false
-	var id: String = trade.loot.get("origin", "")
-	if id.is_empty() or _has_origin(id):
-		return false
-	var lot := {"id": id, "origin": "Emboscada na rota do Vale", "owner": trade.loot.get("owner", ""),
-		"owner_name": trade.loot.get("owner_name", ""), "quantity": 1, "state": "Retido no armazém"}
-	market.append(lot)
 	trade.loot.quantity -= 1
 	if trade.loot.quantity <= 0:
 		trade.loot.clear()
+	return true
+
+func receive_lot(id: String, origin: String, owner: String, owner_name: String) -> bool:
+	if id.is_empty() or _has_origin(id) or market.size() >= 16:
+		return false
+	market.append({"id": id, "origin": origin, "owner": owner, "owner_name": owner_name,
+		"quantity": 1, "state": "Retido no armazém"})
 	reputation += 1
 	_log("A Irmandade recolheu um fardo da carroça.")
 	return true
@@ -139,4 +141,4 @@ func _restore_lots(values: Variant, target: Array[Dictionary], limit: int, state
 		return
 	for lot in values.slice(0, limit):
 		if lot is Dictionary and lot.get("id") is String and lot.get("owner") is String and not _has_origin(lot.id.left(80)):
-			target.append({"id": lot.id.left(80), "owner": lot.owner.left(32), "owner_name": str(lot.get("owner_name", "")).left(40), "origin": "Emboscada na rota do Vale", "quantity": 1, "state": state})
+			target.append({"id": lot.id.left(80), "owner": lot.owner.left(32), "owner_name": str(lot.get("owner_name", "")).left(40), "origin": str(lot.get("origin", "Emboscada na rota do Vale")).left(80), "quantity": 1, "state": state})
