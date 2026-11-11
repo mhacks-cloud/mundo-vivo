@@ -52,8 +52,8 @@ func write_state(state: Dictionary, path: String = PATH) -> Error:
 	if previous.has("version") and previous.version not in [1.0, 2.0, 3.0, 4.0]:
 		return ERR_FILE_UNRECOGNIZED
 	if not read_state(path).is_empty():
-		var backup := path + ".pre-4.bak"
-		if (previous.version == 1 or previous.version == 2) and not FileAccess.file_exists(backup):
+		var backup := path + (".pre-4.1.bak" if previous.version == 3 else ".pre-4.bak")
+		if previous.version < VERSION and not FileAccess.file_exists(backup):
 			var legacy_copy := DirAccess.copy_absolute(path, backup)
 			if legacy_copy != OK:
 				return legacy_copy

@@ -310,18 +310,23 @@ func _refresh_environment(delta: float) -> void:
 	var solar := sin((hour - 6.0) * TAU / 24.0)
 	var light := smoothstep(-0.20, 0.64, solar)
 	var golden := (1.0 - smoothstep(0.18, 0.75, solar)) * smoothstep(-0.20, 0.05, solar)
-	var climate := simulation.climate.sample(simulation.clock.total_day(), hour)
-	var wet: bool = climate.weather == "Chuva" or climate.weather == "Neve"
-	var mist: bool = climate.weather == "Névoa"
-	raining = wet
-	if climate.weather == "Chuva":
+	var day := simulation.clock.total_day()
+	var valley := simulation.climate.sample(day, hour)
+	raining = valley.weather in ["Chuva", "Neve"]
+	if valley.weather == "Chuva":
 		simulation.economy.rain(simulation.clock)
+	var at := player.position
+	var on_frontier := at.x > 16.8 and at.x < 33.0 and at.z < -4.0
+	var region := career.frontier.climate if on_frontier else simulation.climate
+	var climate := region.sample(day, hour) if on_frontier else valley
+	var wet: bool = climate.weather in ["Chuva", "Neve"]
+	var mist: bool = climate.weather == "Névoa"
 	var crop := simulation.economy.crop
 	if crop == 3 and simulation.clock.elapsed >= simulation.economy.crop_due:
 		crop = 4
 	diorama.update_crop(crop)
 	wet_blend = lerpf(wet_blend, 1.0 if wet else 0.0, clampf(delta * 1.9, 0.0, 1.0))
-	var season_index := simulation.climate.seasons.index(simulation.clock.total_day(), simulation.climate.latitude)
+	var season_index := region.seasons.index(day, region.latitude)
 	diorama.weather(season_index, wet, climate.weather == "Neve", light)
 	var fog := Color("222d48").lerp(Color("7d9ea1"), light)
 	sun.rotation_degrees = Vector3(-15.0 - maxf(0.0, solar) * 49.0, -66.0 - (hour - 8.5) * 8.5, 0)
@@ -345,7 +350,7 @@ func _refresh_environment(delta: float) -> void:
 	diorama.palette.materials.glass.emission_energy_multiplier = lerpf(0.92, 0.22, light)
 	sprite_light = sprite_light.lerp(Color("768bb1").lerp(Color("fff2da"), light * (1.0 - wet_blend * 0.19)), clampf(delta * 3.0, 0.0, 1.0))
 	hud.update_clock(simulation.clock,
-		simulation.climate.seasons.name_for(simulation.clock.total_day(), simulation.climate.latitude), climate)
+		region.seasons.name_for(day, region.latitude), climate)
 
 func _refresh_quality() -> void:
 	get_viewport().msaa_3d = Viewport.MSAA_DISABLED if quality == 0 else Viewport.MSAA_2X if quality == 1 else Viewport.MSAA_4X

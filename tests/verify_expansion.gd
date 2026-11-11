@@ -39,6 +39,32 @@ func _run() -> void:
 	vale._save()
 	check(not vale.saves.read_state(first).is_empty(), "salvar após recuperação restaura o arquivo principal")
 
+	var another := PlayerLife.new()
+	another.create("Dora da Serra", "mage", "amieiro", 0, 0)
+	another.claim("sul-02")
+	var legacy: Dictionary = vale.saves.read_state(first)
+	legacy.career.life = another.snapshot()
+	var old_format := FileAccess.open(second, FileAccess.WRITE)
+	old_format.store_string(JSON.stringify({"version": 3, "state": legacy}))
+	old_format.close()
+	career.start_menu()
+	for entry in vale.saves.list_slots():
+		if entry.path == second:
+			career.open_save(entry)
+			break
+	check(life.role() == "mage" and life.profile.uid != id and life.estate.owned(PlayerLife.ID) == "sul-02",
+		"segunda partida em esquema 3 tem classe, identidade e terreno independentes")
+	vale._save()
+	check(FileAccess.file_exists(second + ".pre-4.1.bak"), "migração do esquema 3 guarda o arquivo original")
+	career.start_menu()
+	for entry in vale.saves.list_slots():
+		if entry.path == first:
+			career.open_save(entry)
+			break
+	check(life.profile.uid == id and life.estate.owned(PlayerLife.ID) == "sul-01", "retornar à primeira partida preserva o progresso separado")
+	for suffix in ["", ".previous", ".pre-4.1.bak"]:
+		DirAccess.remove_absolute(second + suffix)
+
 	var estate := life.estate
 	var plot := estate.owned(PlayerLife.ID)
 	var origin := Vector2i(1, 1)
@@ -94,6 +120,70 @@ func _run() -> void:
 	check(run.claimed and run.health[2] == 0 and RuinRun.inside(vale.player.position), "masmorra e recompensa persistem")
 	career.ruin.leave()
 	check(vale.player.position.is_equal_approx(RuinRun.EXIT), "saída devolve o jogador ao Vale")
+	var valley_stock: VillageInventory = vale.simulation.economy.stock
+	valley_stock.add("market", "trigo", 3)
+	var initial_wheat := valley_stock.amount("market", "trigo")
+	vale.simulation.clock.elapsed = WorldClock.DAY_SECONDS * 10 / 24
+	vale.player.position = ValeLife.STATIONS.store
+	check(career.perform("buy", "wheat") == "Concluído." and valley_stock.amount("market", "trigo") == initial_wheat - 1,
+		"jogador compra do estoque real da banca do Vale")
+	life.bag.add("wheat", 2)
+	vale.player.position = GuildLedger.HALL
+	check(career.perform("join_guild", "") == "Concluído." and career.guild.member == id, "sede registra o membro pelo identificador persistente")
+	check(career.perform("guild_deposit", "wood") == "Concluído." and career.guild.storage.amount("wood") == 1
+		and career.perform("guild_withdraw", "wood") != "Concluído.", "armazém transfere itens e impede retirada sem cargo")
+	var trade := career.frontier
+	var frontier_wheat: int = trade.stock.wheat
+	var quote := trade.price("wheat")
+	var gold := life.gold
+	vale.player.position = FrontierTrade.ORIGIN
+	check(career.perform("dispatch_escort", "") == "Concluído." and life.bag.amount("wheat") == 0
+		and life.gold == gold and trade.stock.wheat == frontier_wheat, "frete reserva carga e pagamento antes de viajar")
+	check(career.guild.escort and career.guild.treasury == 60 - GuildLedger.PAY, "contrato de escolta reserva ouro da guilda")
+	for i in 300:
+		if not trade.shipment.is_empty():
+			vale.player.position = trade.shipment.position
+		await physics_frame
+	check(not trade.shipment.is_empty() and trade.shipment.position.distance_to(FrontierTrade.ORIGIN) > 1.5
+		and trade.stock.wheat == frontier_wheat, "carroça avança fisicamente sem entregar à distância")
+	var position: Vector3 = trade.shipment.position
+	vale._save()
+	vale._load(true)
+	check(trade.shipment.position.is_equal_approx(position), "posição e carga do frete persistem")
+	for i in 3900:
+		if not trade.shipment.is_empty():
+			vale.player.position = trade.shipment.position
+		await physics_frame
+		if trade.shipment.is_empty():
+			break
+	check(trade.shipment.is_empty() and trade.deliveries == 1 and trade.stock.wheat == frontier_wheat + 3
+		and life.gold == gold + quote * 3 + GuildLedger.PAY, "chegada credita carga e ouro uma única vez")
+	check(not career.guild.escort and career.guild.reputation == 1, "acompanhar a carroça conclui a escolta e concede reputação")
+	check(trade.price("wheat") < quote and not trade.arrive(life), "preço responde ao estoque e entrega não duplica")
+	vale.player.position = FrontierTrade.DESTINATION
+	check(career.perform("frontier_buy", "wheat") == "Concluído." and trade.stock.wheat == frontier_wheat + 2,
+		"mercado de Brumária negocia com estoque independente")
+	var cargo := life.bag.amount("wheat")
+	life.bag.add("wheat", 3)
+	var kept_gold := life.gold
+	var kept_weapon := life.bag.amount("sword")
+	vale.simulation.clock.elapsed = WorldClock.DAY_SECONDS * 2 + 3000.0
+	vale.player.position = FrontierTrade.ORIGIN
+	check(career.perform("dispatch_escort", "") == "Concluído.", "frete de dia de risco pode partir com contrato")
+	for i in 3500:
+		await physics_frame
+		if trade.shipment.is_empty():
+			break
+	check(trade.shipment.is_empty() and not trade.loot.is_empty() and trade.loot.quantity == 3,
+		"emboscada derrota a carroça e toda a carga se torna recuperável")
+	check(life.gold == kept_gold and life.bag.amount("sword") == kept_weapon and not career.guild.escort,
+		"derrota encerra a escolta e preserva ouro e equipamento pessoal")
+	var location: Vector3 = trade.loot.get("position", FrontierTrade.DESTINATION)
+	vale.player.position = location
+	vale._save()
+	vale._load(true)
+	check(trade.collect(life, location, vale.simulation.clock.elapsed) and life.bag.amount("wheat") == cargo + 3
+		and not trade.collect(life, location, vale.simulation.clock.elapsed), "carga recupera uma única vez após recarregar")
 	for suffix in ["", ".previous"]:
 		DirAccess.remove_absolute(first + suffix)
 	print("%d verificações da expansão, %d falhas." % [checks, failures])

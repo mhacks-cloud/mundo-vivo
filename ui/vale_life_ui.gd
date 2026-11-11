@@ -235,12 +235,61 @@ func open(next_page: String) -> void:
 			_body_text("07:00–19:00 · Saldo %d ouro. As compras usam estoque finito. Vendas de trigo abastecem a vila." % life.gold)
 			var items := []
 			for id in LifeCatalog.GOODS:
-				if int(life.stock.get(id, 0)) > 0 or life.bag.amount(id) > 0:
+				if int(life.stock.get(id, 0)) > 0 or life.bag.amount(id) > 0 or (id == "wheat" and service.game.simulation.economy.stock.amount("market", "trigo") > 0):
 					items.append(id)
 			var picker := _pick(items, func(id: String) -> String: return "%s · %d ouro · banca %d / bolsa %d" % [
-				LifeCatalog.label(id), LifeCatalog.GOODS[id][4], life.stock.get(id, 0), life.bag.amount(id)])
+				LifeCatalog.label(id), LifeCatalog.GOODS[id][4], service.game.simulation.economy.stock.amount("market", "trigo") if id == "wheat" else life.stock.get(id, 0), life.bag.amount(id)])
 			_button(body, "Comprar 1", func() -> void: _perform("buy", _selected(picker)))
 			_button(body, "Vender 1", func() -> void: _perform("sell", _selected(picker)))
+		"guild":
+			_reset(next_page, "SEDE DA GUILDA", GuildLedger.NAME)
+			var ledger: GuildLedger = service.guild
+			_body_text("%s · %d reputação · tesouro %d ouro" % [ledger.role(), ledger.reputation, ledger.treasury])
+			_body_text("Líder Lina · Oficial Nilo\nTesoureiro Baltasar · Capitão Afonso")
+			if ledger.member.is_empty():
+				_action("Entrar na Companhia", "join_guild", "")
+			else:
+				_action("Contribuir com 5 ouro", "guild_contribute", "")
+				var items := life.bag.items.keys()
+				for id in ledger.storage.items:
+					if id not in items:
+						items.append(id)
+				var goods := _pick(items, func(id: String) -> String:
+					return "%s · bolsa %d / armazém %d" % [LifeCatalog.label(id), life.bag.amount(id), ledger.storage.amount(id)])
+				_button(body, "Depositar 1", func() -> void: _perform("guild_deposit", _selected(goods)))
+				if ledger.reputation >= 2:
+					_button(body, "Retirar 1 como oficial", func() -> void: _perform("guild_withdraw", _selected(goods)))
+				else:
+					_body_text("Conclua duas escoltas para receber permissão de retirada.")
+			for index in range(ledger.records.size() - 1, maxi(-1, ledger.records.size() - 5), -1):
+				_body_text(ledger.records[index])
+		"frontier":
+			_reset(next_page, "FRONTEIRA NORTE", "Mercado de Brumária")
+			var region: FrontierTrade = service.frontier
+			var clock: WorldClock = service.game.simulation.clock
+			var weather := region.climate.sample(clock.total_day(), clock.hour())
+			_body_text("%s · %d °C · saldo %d ouro" % [weather.weather, roundi(weather.temperature), life.gold])
+			var picker := _pick(FrontierTrade.GOODS, func(id: String) -> String:
+				return "%s · %d ouro · estoque %d" % [LifeCatalog.label(id), region.price(id), region.stock[id]])
+			_button(body, "Comprar 1", func() -> void: _perform("frontier_buy", _selected(picker)))
+			_button(body, "Vender 1", func() -> void: _perform("frontier_sell", _selected(picker)))
+			for index in range(region.history.size() - 1, maxi(-1, region.history.size() - 5), -1):
+				_body_text(region.history[index])
+		"freight":
+			_reset(next_page, "COMÉRCIO REGIONAL", "Frete para Brumária")
+			var region: FrontierTrade = service.frontier
+			_body_text("A carroça leva 3 trigos até o mercado de Brumária. O pagamento fica reservado e só é liberado na chegada.")
+			_body_text("Entregas concluídas · %d" % region.deliveries)
+			if region.shipment.is_empty():
+				_action("Carregar 3 trigos · %d ouro na entrega" % (region.price("wheat") * 3), "dispatch", "")
+				if not service.guild.member.is_empty():
+					_action("Carregar e assinar escolta", "dispatch_escort", "")
+			else:
+				_body_text("Carroça em trânsito · %d ouro reservados" % region.shipment.pay)
+				if not service.guild.member.is_empty() and not service.guild.escort:
+					_action("Assinar escolta · 9 ouro", "escort", "")
+				elif service.guild.escort:
+					_body_text("Escolta ativa. Acompanhe a carroça durante pelo menos 60% do trajeto.")
 		"forge", "alchemy", "carpentry":
 			_reset(next_page, "O F Í C I O   /   N Í V E L   %d" % life.level(), {"forge": "Forja", "alchemy": "Alquimia", "carpentry": "Marcenaria"}[next_page])
 			var count := 0

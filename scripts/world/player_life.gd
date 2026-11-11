@@ -169,6 +169,17 @@ func buy(id: String, quantity: int) -> bool:
 	logbook("−%d ouro · %s ×%d" % [price, LifeCatalog.label(id), quantity])
 	return true
 
+func buy_wheat(village: VillageInventory) -> bool:
+	var price: int = LifeCatalog.GOODS.wheat[4]
+	if profile.is_empty() or gold < price or not bag.can_add("wheat", 1) or not village.spend("market", {"trigo": 1}):
+		return false
+	bag.add("wheat", 1)
+	gold -= price
+	treasury += 1
+	market_cash += price - 1
+	logbook("−%d ouro · trigo da banca de Lina" % price)
+	return true
+
 func sell(id: String, quantity: int, village: VillageInventory) -> bool:
 	if profile.is_empty() or not LifeCatalog.GOODS.has(id) or quantity <= 0 or bag.amount(id) < quantity or id in equipment.values():
 		return false

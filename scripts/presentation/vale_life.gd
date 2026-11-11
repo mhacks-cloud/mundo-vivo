@@ -11,6 +11,9 @@ const GATHER := {"wood": Vector3(-13.9, 0.1, -4.90), "herb": Vector3(-4.7, 0.1, 
 var life := PlayerLife.new()
 var training := TrainingSession.new()
 var ruin := ValeRuin.new()
+var frontier := FrontierTrade.new()
+var guild := GuildLedger.new()
+var caravan := ValeCaravan.new()
 var housing := ValeHousing.new()
 var ui := ValeLifeUI.new()
 var game: Node3D
@@ -37,6 +40,8 @@ func setup(scene: Node3D) -> void:
 	_create_training()
 	game.add_child(ruin)
 	ruin.setup(game, self)
+	game.add_child(caravan)
+	caravan.setup(game, frontier)
 	_register()
 	default_appearance = Vector2i.ZERO
 
@@ -131,12 +136,15 @@ func snapshot() -> Dictionary:
 	for shot in projectiles:
 		var p: Vector3 = shot.node.position
 		shots.append({"at": [p.x, p.y, p.z], "target": shot.target, "amount": shot.amount})
-	return {"life": life.snapshot(), "training": training.snapshot(), "ruin": ruin.run.snapshot(), "shots": shots}
+	return {"life": life.snapshot(), "training": training.snapshot(), "ruin": ruin.run.snapshot(), "frontier": frontier.snapshot(), "guild": guild.snapshot(), "shots": shots}
 
 func restore(data: Variant) -> void:
 	life.restore(data.get("life") if data is Dictionary else null)
 	training.restore(data.get("training") if data is Dictionary else null)
 	ruin.restore(data.get("ruin") if data is Dictionary else null)
+	frontier.restore(data.get("frontier") if data is Dictionary else null)
+	guild.restore(data.get("guild") if data is Dictionary else null, life, frontier)
+	caravan.reset()
 	for shot in projectiles:
 		shot.node.queue_free()
 	projectiles.clear()
@@ -188,6 +196,7 @@ func physics(delta: float) -> void:
 	var player := game.player as PixelActor
 	var player_pos := player.position
 	ruin.physics(delta)
+	caravan.advance(life, guild, delta)
 	if not RuinRun.inside(player_pos):
 		training.tick(life, player_pos, Input.is_physical_key_pressed(KEY_SHIFT), delta)
 	if life.hp <= 0.0:
@@ -336,13 +345,32 @@ func perform(verb: String, id: String) -> String:
 		"unequip": success = life.unequip(id)
 		"discard": success = life.discard(id, 1)
 		"store", "take": success = _near_plot() and life.transfer(id, 1, verb == "store")
-		"buy": success = _open_store() and life.buy(id, 1)
+		"buy": success = _open_store() and (life.buy_wheat(game.simulation.economy.stock) if id == "wheat" else life.buy(id, 1))
 		"sell": success = _open_store() and life.sell(id, 1, game.simulation.economy.stock)
 		"craft":
 			var recipe: Dictionary = LifeCatalog.RECIPES.get(id, {})
 			success = not recipe.is_empty() and _near_station(recipe.station) and life.craft(id, recipe.station)
 		"repair", "self_repair": success = _near_station("forge") and life.repair(id, verb == "self_repair")
 		"contract": success = _near_station("contracts") and life.fulfill(id, game.simulation)
+		"frontier_buy": success = game.player.position.distance_to(FrontierTrade.DESTINATION) <= 2.5 and frontier.buy(life, id)
+		"frontier_sell": success = game.player.position.distance_to(FrontierTrade.DESTINATION) <= 2.5 and frontier.sell(life, id)
+		"dispatch", "dispatch_escort":
+			var with_escort := verb == "dispatch_escort"
+			var can_escort: bool = guild.member == life.profile.get("uid", "") and not guild.member.is_empty() and not guild.escort and guild.treasury >= GuildLedger.PAY
+			success = game.player.position.distance_to(FrontierTrade.ORIGIN) <= 2.5 and (not with_escort or can_escort)
+			success = success and frontier.dispatch(life, game.simulation.clock.total_day())
+			if success:
+				caravan.reset()
+				if with_escort:
+					guild.sign(life, frontier)
+		"join_guild", "guild_deposit", "guild_withdraw", "guild_contribute", "escort":
+			var at_hall: bool = game.player.position.distance_to(GuildLedger.HALL) <= 2.5
+			match verb:
+				"join_guild": success = at_hall and guild.join(life)
+				"guild_deposit": success = at_hall and guild.deposit(life, id)
+				"guild_withdraw": success = at_hall and guild.withdraw(life, id)
+				"guild_contribute": success = at_hall and guild.contribute(life)
+				"escort": success = game.player.position.distance_to(FrontierTrade.ORIGIN) <= 2.5 and guild.sign(life, frontier)
 		"starter":
 			if not _near_plot():
 				return "Aproxime-se do lote para montar a casa."
@@ -381,6 +409,9 @@ func perform(verb: String, id: String) -> String:
 	return "Concluído." if success else "Ação indisponível. Confira local, requisitos, estoque, capacidade e saldo."
 
 func _register() -> void:
+	game.interactions.register("Companhia do Vau", GuildLedger.HALL, func() -> void: ui.open("guild"), 1.6)
+	game.interactions.register("Mercado de Brumária", FrontierTrade.DESTINATION, func() -> void: ui.open("frontier"), 1.8)
+	game.interactions.register("Quadro de fretes", FrontierTrade.ORIGIN, func() -> void: ui.open("freight"), 1.8)
 	game.interactions.register("Bancada de alquimia", STATIONS.alchemy, func() -> void: open_near("alchemy"), 1.55)
 	game.interactions.register("Oficina de marcenaria", STATIONS.carpentry, func() -> void: open_near("carpentry"), 1.55)
 	game.interactions.register("Galinheiro · alimentar ou colher ovos", STATIONS.coop, func() -> void:
@@ -409,6 +440,8 @@ func _register() -> void:
 func _attack() -> void:
 	if RuinRun.inside(game.player.position):
 		ruin.cast()
+		return
+	if caravan.defend(life):
 		return
 	var player := game.player as PixelActor
 	var position := player.position

@@ -53,12 +53,14 @@ func setup(scene: Node3D, controller: ValeLife) -> void:
 	game.interactions.register("Sair da Ruína", RuinRun.ENTRANCE, leave, 1.55)
 	game.interactions.register("Abrir cofre da Sentinela", RuinRun.CACHE, _recover, 1.8)
 	refresh()
+	hide()
 
 func enter() -> void:
 	if career.life.role() not in ["warrior", "archer", "mage", "healer"]:
 		game.hud.show_message("A galeria é uma expedição para classes de aventura.")
 		return
 	run.enter(game.simulation.clock.total_day())
+	show()
 	game.player.position = RuinRun.ENTRANCE + Vector3.RIGHT * 0.65
 	ally.position = RuinRun.ENTRANCE + Vector3.BACK
 	game.follow = game.player.position
@@ -68,6 +70,7 @@ func enter() -> void:
 func leave() -> void:
 	if not RuinRun.inside(game.player.position):
 		return
+	hide()
 	game.player.position = RuinRun.EXIT
 	game.follow = game.player.position
 	_clear_bolts()
@@ -116,7 +119,7 @@ func cast() -> void:
 		return
 	var origin := player.position + Vector3.UP * 0.82
 	var destination := target.position + Vector3.UP * 0.8
-	if not get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(origin, destination, 1)).is_empty():
+	if not _line_clear(origin, destination):
 		return
 	var damage := 23.0
 	match life.role():
@@ -146,6 +149,7 @@ func physics(delta: float) -> void:
 	var player: PixelActor = game.player
 	var life := career.life
 	var inside := RuinRun.inside(player.position)
+	visible = inside
 	ally.visible = inside and life.role() == "healer" and run.ally_hp > 0
 	if not inside:
 		return
@@ -175,7 +179,7 @@ func _update_enemy(i: int, player: PixelActor, right: Vector3, delta: float) -> 
 		if enemy.timer <= 0:
 			enemy.mode = "recover"
 			enemy.timer = 0.75
-			if offset.length() < (2.1 if i == 2 else 1.65):
+			if offset.length() < (2.1 if i == 2 else 1.65) and _line_clear(actor.position + Vector3.UP * 0.8, victim.position + Vector3.UP * 0.8):
 				var amount := (18.0 if i == 2 else 9.0) * (1.18 if run.empowered() else 1.0)
 				if victim == ally:
 					run.ally_hp = maxf(0, run.ally_hp - amount)
@@ -244,6 +248,10 @@ func _update_bolts(delta: float) -> void:
 			node.position = next
 			node.look_at(destination)
 
+func _line_clear(origin: Vector3, destination: Vector3) -> bool:
+	var query := PhysicsRayQueryParameters3D.create(origin, destination, 1)
+	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
 func _clear_bolts() -> void:
 	for shot in bolts:
 		shot.node.queue_free()
@@ -279,6 +287,7 @@ func _wall(at: Vector3, size: Vector3, material := "stone") -> StaticBody3D:
 	root.add_child(hit)
 	var display := _box(at, size, material)
 	display.reparent(root)
+	root.set_meta("facade", display)
 	return root
 
 func _box(at: Vector3, size: Vector3, material: String) -> MeshInstance3D:
