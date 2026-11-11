@@ -1,4 +1,4 @@
-# Mundo Vivo 4.2
+# Mundo Vivo 4.3
 
 **Vale do Amieiro** é o primeiro mapa jogável de um sandbox medieval offline. A vila é construída em 3D, com texturas pixeladas, personagens animados em 2D e iluminação que acompanha o relógio do vale.
 
@@ -87,6 +87,7 @@ godot --headless --path . --fixed-fps 60 --script res://tests/verify_life.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_player_life.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_expansion.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_kingdom.gd
+godot --headless --path . --fixed-fps 60 --script res://tests/verify_realms.gd
 ```
 
 ### Limites do protótipo
@@ -208,6 +209,15 @@ A versão 3.0 mantém o layout e o renderizador Compatibility da 2.0. Os sprites
 
 O combate é de treino PvE, com alvos fixos e uma aliada. Criaturas livres, expedições, escolta de caravanas, especializações, troca de nação e multiplayer ficam para versões futuras. Os lotes são privados e a construção é aditiva. As portas instaladas são passagens abertas. O calendário pode avançar ao reabrir, conforme a configuração do Vale, enquanto o inventário e as transações voltam ao estado gravado.
 
+## Jogar a expansão 4.3
+
+- Pressione **P** para abrir o Atlas dos Reinos. Use a roda para aproximar, arraste para deslocar e clique em um destino para consultar clima e rotas.
+- Siga a estrada leste do mercado da fronteira e interaja com o portão. Alto da Bruma tem um mercado próprio, uma pedreira de extração finita e uma sede da Coroa onde Rainha Elira avalia projetos.
+- O frete do Vale vende trigo no entreposto. Aldo compra lotes desse estoque para a capital quando há demanda. A fronteira cobra a tarifa, e o trigo só entra no estoque de Alto da Bruma depois da entrega. Membros da Companhia do Vau podem assinar a escolta junto ao portão.
+- Tempestades podem fechar o Caminho Alto. O comboio usa a encosta, onde o risco e o custo sobem. O reparo reabre o trecho. Com entregas suficientes, a rainha financia uma moradia e libera o Pouso da Geada.
+
+O repositório existente é [mhacks-cloud/mundo-vivo](https://github.com/mhacks-cloud/mundo-vivo). Abra `project.godot` no Godot 4.7.2 após clonar ou extrair o ZIP.
+
 ## Jogar a expansão 4.2
 
 - Em Brumária, procure Mira do Junco no extremo norte. **E** abre o armazém da Irmandade. Em dias de risco, uma carroça derrotada deixa trigo recuperável. Se o batedor chegar a tempo, um fardo identificado sai da carga caída e entra no armazém clandestino.
@@ -217,7 +227,7 @@ O combate é de treino PvE, com alvos fixos e uma aliada. Criaturas livres, expe
 
 Veja o [changelog](CHANGELOG.md) e o [estado de implementação](docs/IMPLEMENTATION_STATUS.md).
 
-A partir do ZIP, extraia a pasta `Mundo Vivo` e importe `project.godot` pelo gerenciador de projetos do Godot 4.7.2. Use **F6** para testar a cena aberta ou **F5** para iniciar o projeto. Quando o remoto privado estiver disponível, copie a URL de clonagem pelo botão **Code** do GitHub e execute `git clone` com essa URL usando uma conta autorizada. Abra o mesmo `project.godot` na pasta clonada.
+A partir do ZIP, extraia a pasta `Mundo Vivo` e importe `project.godot` pelo gerenciador de projetos do Godot 4.7.2. Use **F6** para testar a cena aberta ou **F5** para iniciar o projeto. Para clonar o remoto privado, copie a URL de clonagem pelo botão **Code** do GitHub e execute `git clone` com essa URL usando uma conta autorizada. Abra o mesmo `project.godot` na pasta clonada.
 
 ## Jogar a expansão 4.1
 

@@ -1,4 +1,4 @@
-# Estado da implementação · Mundo Vivo 4.2
+# Estado da implementação · Mundo Vivo 4.3
 
 | Estado | Significado |
 | --- | --- |
@@ -26,7 +26,10 @@
 | G · Eventos encadeados e obras | PARCIAL | Calendário, rotinas, colheitas, histórico, construção física da ponte e emboscadas determinísticas existem. A chuva regional pode interditar a rota norte. O rei avalia oito tipos de proposta e três têm terreno e execução física. O teste cobre transporte e reabertura após reload. Faltam diretor de eventos amplo, outras crises sazonais, votação e novas regiões. |
 | H · Distribuição offline | PARCIAL | Projeto Godot empacotado e verificado. Mapa completo, tutorial ampliado, otimização por regiões e executável Windows independente pendentes. |
 | I · Cloud e multiplayer | PENDENTE | Contratos de serviço locais, roteiro técnico e separação entre apresentação e estado persistente. Rede, concorrência, autenticação, sincronização e implantação continuam planejadas. |
-| Publicação no GitHub | BLOQUEADO | O projeto está sem remoto e a integração autenticada não encontrou um repositório Mundo Vivo instalado. A CLI oficial `gh` foi disponibilizada. A criação e o envio dependem da autorização do dispositivo na conta GitHub. |
+| H · Atlas e transição | TESTADO | Atlas com descoberta, zoom, deslocamento, seleção e estados de acesso. Portão liga o entreposto a Alto da Bruma, com descarregamento do cenário serrano e continuidade da simulação. |
+| H · Mercados e comércio entre coroas | TESTADO | Vale, entreposto e capital têm estoques distintos. Compras do comboio, inspeção, entrega, escassez, tarifas, escolta e saque persistem. |
+| H · Desenvolvimento territorial | PARCIAL | Rainha Elira avalia reparo e moradia. A equipe física reabre a estrada e libera o Pouso com uma nova moradora. Bairros maiores, lotes privados serranos e criação de personagem de Brumária estão pendentes. |
+| Publicação no GitHub | IMPLEMENTADO | `origin` aponta para o repositório privado existente e a 4.2 está publicada. A branch e a tag da 4.3 são verificadas ao fechar a entrega. |
 
 ## Testes executados
 
@@ -37,5 +40,7 @@
 - `verify_expansion.gd` · 40 verificações de recuperação, reforma, ruína, mercados, frete, escolta e carga caída.
 
 - `verify_kingdom.gd` · 26 verificações de mercado clandestino, justiça, clima, obra pública e recuperação da rota.
+
+- `verify_realms.gd` · 27 verificações territoriais com transição, cadeia de suprimentos, perda e recuperação de carga, obra e expansão.
 
 O motor Godot 4.7.2 emitiu um aviso sobre o acesso ao repositório de certificados do Windows. O jogo e as suítes foram executados localmente.

@@ -1415,3 +1415,11 @@ O fardo tem o identificador do frete, sua origem, o proprietário anterior quand
 A guarda opera com linha de visão, relato identificado e tempo de comunicação. O ataque à carroça é um alerta de proteção e pode abrir um prêmio de escolta. Negociação observada no Junco gera uma suspeita e, depois do prazo, um mandado. A multa pode ser quitada no posto. Uma captura permite recolher ouro e suprimentos elegíveis. A prisão termina no calendário do mundo.
 
 A Prefeitura aceita propostas, aplica o cadastro de terrenos e reserva orçamento e materiais. A mestra Iara se desloca entre depósito e canteiro durante a jornada. A conclusão libera o acesso norte, aumenta a capacidade do mercado ou melhora a observação da guarda, conforme o projeto. A enchente usa clima de Brumária e exige a Ponte Nova pronta. Durante a interdição, a navegação e o preço de varejo do trigo refletem o desvio.
+
+## Expansão territorial jogável na 4.3
+
+A Coroa do Amieiro mantém o Vale agrícola, o bosque e a Ponte Nova. Brumária tem um entreposto, uma ruína e a capital Alto da Bruma, governada por Rainha Elira. O portão permite cruzar entre os cenários no mesmo relógio. Fora da capital, a simulação conserva estoques, carregamentos e etapas da obra sem instanciar o cenário serrano. Salmar aparece como porto futuro.
+
+Os fretes do Vale entregam ao entreposto. Aldo compra do estoque real desse mercado e transporta até três trigos por vez. A guarda registra a passagem e recolhe tarifa. A Companhia oferece escolta, e a carga de uma derrota permanece recuperável. A Irmandade pode retirar um fardo rastreado enquanto ele ainda está no terreno. A entrega repõe estoque e reduz pressão sobre preços.
+
+Altitude, bioma, hemisfério e influência marítima determinam o clima. A mina tem reservas limitadas. Tempestades podem fechar o Caminho Alto e aumentar o custo do desvio. Rainha Elira financia reparos ou uma moradia com reservas reais de ferro, madeira e ouro. A mestra transporta cada carga. A inauguração reabre o caminho ou habilita o Pouso da Geada, com moradora e nova descoberta no atlas.

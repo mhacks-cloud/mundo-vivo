@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.3.0
+
+- Atlas interativo com descoberta persistente, seleção de destino, clima e conexões ligadas às obras e enchentes.
+- Alto da Bruma carrega pelo portão leste da fronteira. A região traz mercado, pedreira, guarda, Rainha Elira e uma nova vila liberada por obra.
+- Comboio compra trigo do entreposto, passa pela inspeção, segue a rota física e altera estoque e preço na entrega. O desvio tem emboscada, recuperação única da carga, escolta da Companhia e coleta da Irmandade.
+- Tempestades, consumo, mineração limitada, custo de transporte e reparos afetam o comércio. A atividade comercial pode financiar uma nova casa com moradora e conexão no mapa.
+- Dados territoriais opcionais no save existente. As partidas da 4.1 e da 4.2 continuam legíveis.
+
 ## 4.2.0
 
 - Irmandade do Junco com registro próprio, batedor, tesouro, contrato e estoque de fardos rastreados. A recuperação legal e a circulação clandestina compartilham o saldo físico da carga.
