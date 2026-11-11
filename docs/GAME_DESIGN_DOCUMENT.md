@@ -1407,3 +1407,11 @@ DOCUMENTAR E PREPARAR, SEM EXIGIR SERVIDOR ONLINE AGORA:
 
 Não apresentar esses sistemas como online funcional
 até serem realmente implementados e testados em rede.
+
+## Regras jogáveis de reinos, justiça e submundo na 4.2
+
+O fardo tem o identificador do frete, sua origem, o proprietário anterior quando conhecido e o estado de circulação. Uma carroça perdida gera uma carga recuperável. O batedor Téo recolhe um fardo se alcançar o ponto antes do proprietário. Mira cadastra associados e intermedeia o comércio no Junco. A entrega de contrato retira o identificador da circulação. O estoque legal responde à entrega e ao consumo regional durante a escassez.
+
+A guarda opera com linha de visão, relato identificado e tempo de comunicação. O ataque à carroça é um alerta de proteção e pode abrir um prêmio de escolta. Negociação observada no Junco gera uma suspeita e, depois do prazo, um mandado. A multa pode ser quitada no posto. Uma captura permite recolher ouro e suprimentos elegíveis. A prisão termina no calendário do mundo.
+
+A Prefeitura aceita propostas, aplica o cadastro de terrenos e reserva orçamento e materiais. A mestra Iara se desloca entre depósito e canteiro durante a jornada. A conclusão libera o acesso norte, aumenta a capacidade do mercado ou melhora a observação da guarda, conforme o projeto. A enchente usa clima de Brumária e exige a Ponte Nova pronta. Durante a interdição, a navegação e o preço de varejo do trigo refletem o desvio.

@@ -12,11 +12,9 @@ Outros pontos de retomada:
 - `verify_expansion.gd` cobre os fluxos novos. As quatro suítes anteriores continuam em `tests/`.
 - `GAME_DESIGN_DOCUMENT.md` reúne as regras aprovadas. `IMPLEMENTATION_STATUS.md` registra as lacunas.
 
-## Próxima entrega · comércio clandestino da etapa E
+## Próxima entrega · expansão das nações
 
-Comece por um comerciante NPC em um esconderijo acessível na borda do Vale. Acrescente procedência e proprietário à carga recuperável e preserve esses campos na bolsa ou em um registro referenciado por identificador. Use o mesmo fluxo de pagamento e estoque que os fretes existentes. A venda clandestina deve validar a procedência, liquidar a mercadoria uma única vez e registrar uma ocorrência local. Acrescente testes de recusa de carga comum, expiração, recarga, pagamento único e impossibilidade de vender a mesma carga em dois mercados. Depois inclua a associação clandestina persistente e seus contratos fictícios.
-
-Na etapa F, ligue essas ocorrências à testemunha presente e ao tempo de comunicação. A guarda só recebe um relato quando ele chega. Separe os papéis de agressor, defensor e vítima no evento. Teste multa, legítima defesa, recusa de punição por mera derrota e preservação de equipamento protegido. Na etapa G, use o mesmo histórico para aprovações do rei, projetos físicos, clima e recuperação.
+A 4.2 acrescentou comércio clandestino, justiça testemunhada e projetos do rei. As próximas lacunas são terrenos públicos para mercado, praça e irrigação, tesouros e autoridades de outras nações, conflitos com mais tipos de ocorrência, e mais de um contrato por guilda. Ampliar a cobertura para um ciclo econômico completo depois da reabertura e para partidas com vários mandados simultâneos.
 
 ## Infraestrutura futura
 

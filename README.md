@@ -1,4 +1,4 @@
-# Mundo Vivo 4.1
+# Mundo Vivo 4.2
 
 **Vale do Amieiro** é o primeiro mapa jogável de um sandbox medieval offline. A vila é construída em 3D, com texturas pixeladas, personagens animados em 2D e iluminação que acompanha o relógio do vale.
 
@@ -86,6 +86,7 @@ godot --headless --path . --fixed-fps 60 --script res://tests/verify_presentatio
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_life.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_player_life.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_expansion.gd
+godot --headless --path . --fixed-fps 60 --script res://tests/verify_kingdom.gd
 ```
 
 ### Limites do protótipo
@@ -206,6 +207,17 @@ A versão 3.0 mantém o layout e o renderizador Compatibility da 2.0. Os sprites
 ### Escopo atual
 
 O combate é de treino PvE, com alvos fixos e uma aliada. Criaturas livres, expedições, escolta de caravanas, especializações, troca de nação e multiplayer ficam para versões futuras. Os lotes são privados e a construção é aditiva. As portas instaladas são passagens abertas. O calendário pode avançar ao reabrir, conforme a configuração do Vale, enquanto o inventário e as transações voltam ao estado gravado.
+
+## Jogar a expansão 4.2
+
+- Em Brumária, procure Mira do Junco no extremo norte. **E** abre o armazém da Irmandade. Em dias de risco, uma carroça derrotada deixa trigo recuperável. Se o batedor chegar a tempo, um fardo identificado sai da carga caída e entra no armazém clandestino.
+- **L** abre o registro de justiça. O pagamento voluntário é feito no posto em Brumária. Uma testemunha com visão direta registra a ocorrência. O mandado só fica ativo após o relato. A apreensão se limita a consumíveis elegíveis e o saldo pode virar prisão temporária.
+- **E** na Prefeitura do Vale abre as propostas. Após chuva intensa em Brumária e com a Ponte Nova pronta, o acesso norte pode ficar interditado. A rota alternativa usa a ponte de pedra e reduz o pagamento líquido do frete em 3 ouro. A equipe trabalha entre 06:00 e 19:00 e continua de onde parou ao carregar a partida.
+- O rei também pode iniciar o reparo no dia seguinte à enchente ou um posto após ocorrências na fronteira, se o tesouro e o depósito puderem sustentar o projeto.
+
+Veja o [changelog](CHANGELOG.md) e o [estado de implementação](docs/IMPLEMENTATION_STATUS.md).
+
+A partir do ZIP, extraia a pasta `Mundo Vivo` e importe `project.godot` pelo gerenciador de projetos do Godot 4.7.2. Use **F6** para testar a cena aberta ou **F5** para iniciar o projeto. Quando o remoto privado estiver disponível, copie a URL de clonagem pelo botão **Code** do GitHub e execute `git clone` com essa URL usando uma conta autorizada. Abra o mesmo `project.godot` na pasta clonada.
 
 ## Jogar a expansão 4.1
 

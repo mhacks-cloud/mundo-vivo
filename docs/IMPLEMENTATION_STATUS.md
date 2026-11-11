@@ -1,4 +1,4 @@
-# Estado da implementação · Mundo Vivo 4.1
+# Estado da implementação · Mundo Vivo 4.2
 
 | Estado | Significado |
 | --- | --- |
@@ -20,13 +20,13 @@
 | D · Mercado de Brumária | TESTADO | Posto visitável na margem leste, clima local da serra, estoque, caixa, imposto e registros independentes. O preço de compra reage à disponibilidade. |
 | D · Produção e integração nacional | PARCIAL | A banca de Lina vende trigo do estoque real dos NPCs. A Coroa do Amieiro é a origem jogável. Brumária é visitável, com produção própria, origem de personagem e governo jogável ainda pendentes. |
 | E · Guilda e fretes | TESTADO | Companhia do Vau com cargos NPC, armazém por permissão, tesouro, reputação, histórico e escolta paga na entrega. Uma carroça por vez navega fisicamente; o pagamento fica reservado. |
-| E · Emboscada e perda de carga | TESTADO | Em dias de risco, o saqueador se aproxima e ataca. A derrota deixa toda a carga recuperável por 120 segundos da simulação, e devolve as reservas. A recuperação é única e o estado persiste. |
-| E · Expansão de guildas | PENDENTE | Múltiplas guildas, comboios, sede editável, criação clandestina, mercado negro e rotas escolhidas pelo jogador. |
-| F · Justiça e conflitos | PENDENTE | A guarda do Vale patrulha e responde à chuva. Testemunhas, multas, prisão, legítima defesa e simulação de PvP ainda aguardam implementação. |
-| G · Eventos encadeados e obras | PARCIAL | Calendário, rotinas, colheitas, histórico, construção física da ponte e emboscadas determinísticas existem. Faltam diretor de eventos, crises sazonais, votação, aprovação por rei e ativação de novas regiões por condições. |
+| E · Emboscada e perda de carga | TESTADO | Em dias de risco, o saqueador se aproxima e ataca. A derrota derruba toda a carga e libera a reserva. A carga fica recuperável por 120 segundos. Um fardo pode entrar no armazém clandestino se o batedor chegar primeiro. A recuperação é única e o estado persiste. |
+| E · Irmandade do Junco | TESTADO | Registro com Mira, membros e cargos NPC, um contrato, cobrança de taxa e circulação de fardos rastreados. Múltiplas organizações, sedes editáveis, comboios e rotas livres aguardam implementação. |
+| F · Justiça e conflitos | PARCIAL | Patrulha, testemunha, alerta, mandado, captura, multa e prisão persistente. A infração jogável é a negociação clandestina observada. As regras de agressão e legítima defesa têm cobertura direta. PvP e Salmar continuam fora do mapa jogável. |
+| G · Eventos encadeados e obras | PARCIAL | Calendário, rotinas, colheitas, histórico, construção física da ponte e emboscadas determinísticas existem. A chuva regional pode interditar a rota norte. O rei avalia oito tipos de proposta e três têm terreno e execução física. O teste cobre transporte e reabertura após reload. Faltam diretor de eventos amplo, outras crises sazonais, votação e novas regiões. |
 | H · Distribuição offline | PARCIAL | Projeto Godot empacotado e verificado. Mapa completo, tutorial ampliado, otimização por regiões e executável Windows independente pendentes. |
 | I · Cloud e multiplayer | PENDENTE | Contratos de serviço locais, roteiro técnico e separação entre apresentação e estado persistente. Rede, concorrência, autenticação, sincronização e implantação continuam planejadas. |
-| Publicação no GitHub | BLOQUEADO | O projeto está sem remoto e a integração autenticada não encontrou um repositório Mundo Vivo instalado. A CLI `gh` está indisponível neste ambiente. |
+| Publicação no GitHub | BLOQUEADO | O projeto está sem remoto e a integração autenticada não encontrou um repositório Mundo Vivo instalado. A CLI oficial `gh` foi disponibilizada. A criação e o envio dependem da autorização do dispositivo na conta GitHub. |
 
 ## Testes executados
 
@@ -35,5 +35,7 @@
 - `verify_life.gd` · 28 verificações da vida na vila.
 - `verify_player_life.gd` · 45 verificações do RPG e migração anterior.
 - `verify_expansion.gd` · 40 verificações de recuperação, reforma, ruína, mercados, frete, escolta e carga caída.
+
+- `verify_kingdom.gd` · 26 verificações de mercado clandestino, justiça, clima, obra pública e recuperação da rota.
 
 O motor Godot 4.7.2 emitiu um aviso sobre o acesso ao repositório de certificados do Windows. O jogo e as suítes foram executados localmente.
