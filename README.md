@@ -1,4 +1,4 @@
-# Mundo Vivo 4.0 · Sua Vida Começa Aqui
+# Mundo Vivo 4.1
 
 **Vale do Amieiro** é o primeiro mapa jogável de um sandbox medieval offline. A vila é construída em 3D, com texturas pixeladas, personagens animados em 2D e iluminação que acompanha o relógio do vale.
 
@@ -44,7 +44,7 @@ Um dia dura **120 minutos reais**, uma hora dura **5 minutos reais**, o ano tem 
 4. Use **E** na banca de Lina para negociar das 07:00 às 19:00. A alquimia fica junto à taberna, a forja a oeste da praça e a marcenaria a noroeste do poço. **M** consulta contratos e o quadro público a nordeste do poço recebe as entregas.
 5. Para as classes de aventura, atravesse a ponte de pedra e vá ao sul pela margem leste. **F** acerta o alvo adequado à sua técnica. O alvo de guarda contra-ataca de perto. Recupere vida e mana longe da área ou use consumíveis.
 
-O jogo tem um personagem por arquivo de salvamento. Em uma partida anterior à 4.0, o cadastro acrescenta personagem e lote ao mundo já salvo. A primeira gravação preserva o arquivo anterior em `vale_do_amieiro.json.pre-4.bak`. Use **F5 dentro do jogo** antes de fechar e **F9** para retomar manualmente.
+O menu inicial oferece partidas independentes, com um personagem por arquivo. A partida anterior aparece na mesma lista. **F5** grava a partida selecionada e **F9** restaura sua gravação. Quando a gravação principal falha na validação, **Recuperar** abre a última cópia válida.
 ## Estrutura
 
 | Pasta | Responsabilidade |
@@ -85,12 +85,13 @@ godot --headless --path . --fixed-fps 60 --script res://tests/verify.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_presentation.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_life.gd
 godot --headless --path . --fixed-fps 60 --script res://tests/verify_player_life.gd
+godot --headless --path . --fixed-fps 60 --script res://tests/verify_expansion.gd
 ```
 
 ### Limites do protótipo
 
-- A visita à ruína termina na entrada selada. As casas, a taberna e a forja são exploráveis pelo exterior.
-- Há um único perfil geográfico ativo no mapa. O cálculo de clima aceita outros perfis. As estações mudam a paleta do terreno e das plantas. O acúmulo de neve é representado apenas por uma cobertura leve quando o clima indica neve.
+- As casas dos NPCs, a taberna e a forja são exploráveis pelo exterior.
+- O Vale e o posto de Brumária têm perfis climáticos distintos. As estações mudam a paleta do terreno e das plantas. O acúmulo de neve é representado apenas por uma cobertura leve quando o clima indica neve.
 - A iluminação usa luz ambiente global, sol, sombras e fontes locais. A oclusão de contato das fundações é calculada pelo material do solo. Iluminação indireta com rebotes físicos fica pendente. A lente reconstrói a profundidade a partir do buffer do Compatibility e mantém o foco no personagem.
 - Os destinos das rotinas são pontos de serviço definidos na vila. A navegação resolve os trechos entre eles. Repouso e abrigo são representados junto às residências e aos estabelecimentos, cujos interiores ficam para outra etapa.
 - Multiplayer e servidor autoritativo ficam para uma etapa posterior. A entrega é o projeto Godot executável pelo editor. O rio usa um reflexo de céu aproximado pelo ângulo de visão. Os sons são sintetizados para o protótipo.
@@ -179,7 +180,7 @@ A versão 3.0 mantém o layout e o renderizador Compatibility da 2.0. Os sprites
 
 > Single square game UI portrait of Branca, an original medieval night watchwoman around 30 with dark brown bob hair partly visible under a riveted steel nasal helmet, violet slate gambeson, dark brown belt, simple iron lantern clasp, tan complexion. Face and shoulders with margin, three quarter bust facing right, original classic 16-bit RPG hand-placed pixel art, hard blocky edge pixels, deep forest green solid backdrop (#18221c), late afternoon warm key light and deep colored shadows, no text or borders. Fit an existing atlas of pixel portrait icons featuring detailed shoulder clothing.
 
-## Relatório de implementação · 4.0
+## Histórico da versão 4.0 · Sua Vida Começa Aqui
 
 | Área | Implementação |
 | --- | --- |
@@ -205,3 +206,13 @@ A versão 3.0 mantém o layout e o renderizador Compatibility da 2.0. Os sprites
 ### Escopo atual
 
 O combate é de treino PvE, com alvos fixos e uma aliada. Criaturas livres, expedições, escolta de caravanas, especializações, troca de nação e multiplayer ficam para versões futuras. Os lotes são privados e a construção é aditiva. As portas instaladas são passagens abertas. O calendário pode avançar ao reabrir, conforme a configuração do Vale, enquanto o inventário e as transações voltam ao estado gravado.
+
+## Jogar a expansão 4.1
+
+- No menu inicial, escolha **Nova partida**, **Carregar** ou **Recuperar**. Cada partida tem inventário, mundo e progresso próprios.
+- No seu lote, abra **H → Mover ou remover peças**. Bancos e vasos podem mudar de encaixe. Retire os elementos dependentes antes de remover pisos ou fundações.
+- Para explorar a Ruína da Serra, use **E** na entrada a nordeste, na margem leste. Derrote os dois vigias para abrir a câmara da Sentinela. Use **F** para sua técnica e **E** para abrir o cofre e sair.
+- A **Companhia do Vau** recebe membros e doações junto à marcenaria. O quadro **Fretes** fica ao norte da praça. Leve 3 trigos para despachar a carroça. Membros podem reservar a escolta no mesmo pedido. Em dia de emboscada, **F** protege a carga e **E** recupera um fardo caído ao alcance.
+- O mercado de **Brumária** fica a leste do rio, na estrada para a serra. Sua banca compra e vende a partir de estoque próprio. O frete paga na chegada.
+
+[Documento de design](docs/GAME_DESIGN_DOCUMENT.md) · [Estado da implementação](docs/IMPLEMENTATION_STATUS.md) · [Retomada e roteiro para Cloud](docs/NEXT_STEPS.md)
