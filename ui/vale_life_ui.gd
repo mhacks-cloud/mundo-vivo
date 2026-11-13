@@ -19,6 +19,7 @@ var form_coat: OptionButton
 var form_hair: OptionButton
 var form_preview: TextureRect
 var form_desc: Label
+var form_role_label: Label
 var confirm_button: Button
 var page := ""
 var selected := ""
@@ -37,7 +38,7 @@ func setup(controller: Node) -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel = PanelContainer.new()
 	root.add_child(panel)
-	panel.add_theme_stylebox_override("panel", _frame(Color("aa8955"), Color("1b211b")))
+	panel.add_theme_stylebox_override("panel", _frame(Color("94784f"), Color("1c241f")))
 	var section := VBoxContainer.new()
 	section.add_theme_constant_override("separation", 8)
 	panel.add_child(section)
@@ -149,19 +150,23 @@ func _setting_slider(label: String, value: float, low: float, high: float, callb
 	slider.value_changed.connect(callback)
 
 func creator() -> void:
-	_reset("creator", "M U N D O  V I V O   /   0 4", "Sua vida começa aqui", true)
+	_reset("creator", "NOVA PARTIDA", "Crie seu personagem", true)
 	var split := HBoxContainer.new()
 	split.add_theme_constant_override("separation", 18)
 	body.add_child(split)
 	var preview_side := VBoxContainer.new()
-	split.add_child(preview_side)
+	var preview_card := PanelContainer.new()
+	preview_card.add_theme_stylebox_override("panel", _frame(Color("766247"), Color("242a22"), 14, 12))
+	split.add_child(preview_card)
+	preview_card.add_child(preview_side)
 	form_preview = TextureRect.new()
-	form_preview.custom_minimum_size = Vector2(144, 178)
+	form_preview.custom_minimum_size = Vector2(156, 185)
 	form_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	form_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	form_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	preview_side.add_child(form_preview)
-	_label(preview_side, "Traje de viajante", 12, GOLD)
+	form_role_label = _label(preview_side, "", 16, GOLD, true)
+	form_role_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var form := VBoxContainer.new()
 	form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	form.add_theme_constant_override("separation", 6)
@@ -180,7 +185,7 @@ func creator() -> void:
 		form_nation.set_item_disabled(i, not LifeCatalog.NATIONS[id].playable)
 		if not LifeCatalog.NATIONS[id].playable:
 			form_nation.set_item_text(i, LifeCatalog.NATIONS[id].name + " · futura")
-	_label(form, "Cor do traje e cabelo", 12, SILVER)
+	_label(form, "Aparência", 12, SILVER)
 	var colors := HBoxContainer.new()
 	form.add_child(colors)
 	form_coat = _select(colors, ["Azul do rio", "Vinho", "Verde folha", "Ameixa", "Ocre"], func(id: String) -> String: return id)
@@ -192,11 +197,15 @@ func creator() -> void:
 	form_hair.item_selected.connect(func(_index: int) -> void: _creator_preview())
 	confirm_button = _button(body, "Confirmar personagem e escolher terreno", func() -> void:
 		feedback.text = service.confirm_character(form_name.text, _selected(form_class), _selected(form_nation), form_coat.selected, form_hair.selected))
+	_button(body, "Voltar ao menu", service.start_menu)
 	_creator_preview()
 
 func _creator_preview() -> void:
-	form_desc.text = LifeCatalog.CLASSES[_selected(form_class)].summary
-	form_preview.texture = service.preview_actor(form_coat.selected, form_hair.selected)
+	var role := _selected(form_class)
+	var spec: Dictionary = LifeCatalog.CLASSES[role]
+	form_role_label.text = spec.name
+	form_desc.text = "%s · %s\n%s" % [spec.skill, LifeCatalog.label(spec.start), spec.summary]
+	form_preview.texture = service.preview_actor(form_coat.selected, form_hair.selected, role)
 
 func plots() -> void:
 	_reset("plots", "C A R T Ó R I O   /   C O R O A   D O   A M I E I R O", "Seu primeiro terreno", false)
@@ -653,8 +662,8 @@ func _button(parent: Control, caption: String, callback: Callable) -> Button:
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.custom_minimum_size.y = 32
 	button.add_theme_font_size_override("font_size", 13)
-	button.add_theme_stylebox_override("normal", _frame(Color("61553d"), Color("2a3024"), 7, 4))
-	button.add_theme_stylebox_override("hover", _frame(GOLD, Color("3e3e2b"), 7, 4))
+	button.add_theme_stylebox_override("normal", _frame(Color("6d6047"), Color("293229"), 7, 4))
+	button.add_theme_stylebox_override("hover", _frame(GOLD, Color("3b4332"), 7, 4))
 	button.pressed.connect(callback)
 	parent.add_child(button)
 	return button

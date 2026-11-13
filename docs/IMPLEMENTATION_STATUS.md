@@ -1,5 +1,7 @@
 # Estado da implementação · Mundo Vivo 4.5
 
+A branch da edição offline inclui revisão visual do Vale, entreposto, capital e Pouso, prévia de traje por classe e ambientação limitada por qualidade gráfica.
+
 A suíte de sociedade acrescenta 13 verificações. A branch de desenvolvimento entrega salários, compras e lares do elenco do Vale, o pedido recorrente de trigo, transporte de ferro, a oficina de Tomás, uma feira e notícias baseadas em eventos. Os saves 4.4 ganham campos opcionais. A oficina utiliza a equipe e as etapas de obra física de Alto da Bruma.
 
 A continuação liga a vaga da oficina à mudança de Beatriz e à construção de uma segunda moradia no Pouso. Há frete de enxadas e pedidos recorrentes de ferro, madeira, ferramentas e alimentos. A suíte de civilização exercita 30 dias de calendário em janelas aceleradas, com recargas periódicas. Ela inicia com oficina e estoque de demonstração. Não equivale a simular todos os turnos completos de uma campanha nova.

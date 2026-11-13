@@ -12,6 +12,8 @@ Outros pontos de retomada:
 - `verify_expansion.gd` cobre os fluxos novos. As quatro suítes anteriores continuam em `tests/`.
 - `GAME_DESIGN_DOCUMENT.md` reúne as regras aprovadas. `IMPLEMENTATION_STATUS.md` registra as lacunas.
 
+A revisão visual preservou as rotas existentes. Medir FPS em hardware modesto e ampliar detalhes específicos de oficinas e fazendas quando houver novos espaços jogáveis.
+
 ## Próxima entrega · sociedade e cadeias comerciais
 
 Generalizar a mudança de Beatriz para múltiplos candidatos com vagas e salários reservados, fechar a cadeia entre o ferro do entreposto e as ferramentas exportadas e testar a reposição de trigo em uma campanha que começa sem estoques de demonstração.

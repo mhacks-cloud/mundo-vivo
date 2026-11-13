@@ -217,6 +217,10 @@ A versão 3.0 mantém o layout e o renderizador Compatibility da 2.0. Os sprites
 
 O combate é de treino PvE, com alvos fixos e uma aliada. Criaturas livres, expedições, escolta de caravanas, especializações, troca de nação e multiplayer ficam para versões futuras. Os lotes são privados e a construção é aditiva. As portas instaladas são passagens abertas. O calendário pode avançar ao reabrir, conforme a configuração do Vale, enquanto o inventário e as transações voltam ao estado gravado.
 
+## Apresentação visual
+
+A praça do Vale, o entreposto de Brumária e Alto da Bruma ganharam pisos e sinalização. O Pouso recebe caminhos e detalhes de jardim conforme as casas são concluídas. Na criação de personagem, a prévia mostra o traje da classe, as cores e o equipamento inicial. A fumaça usa os perfis médio e alto.
+
 ## Jogar a expansão 4.4
 
 Pressione **K** para consultar estoques, preços, tesouros, tratados e pedidos. Aceite e entregue pedidos no quadro da praça do Vale ou no mercado indicado. O pagamento fica reservado até a conclusão. **P** abre o atlas com preços do trigo e relação entre os reinos. Na capital serrana, a forja atende ferreiros e o mercado compra ferramentas novas.

@@ -62,7 +62,8 @@ func configure(primary: Color, hair: Color, hat: int, is_player: bool, role := "
 	if is_player:
 		visual.render_priority = 1
 
-func appearance(primary: Color, hair: Color) -> void:
+func appearance(primary: Color, hair: Color, role := "player") -> void:
+	profession = role
 	var previous := visual.animation
 	views.clear()
 	for i in 3:
@@ -70,8 +71,8 @@ func appearance(primary: Color, hair: Color) -> void:
 	visual.sprite_frames = views[view_index]
 	visual.play(previous if views[view_index].has_animation(previous) else &"idle")
 
-func preview_texture(primary: Color, hair: Color) -> Texture2D:
-	return _draw(primary, hair, 0, 0, &"idle", 0)
+func preview_texture(primary: Color, hair: Color, role := "player") -> Texture2D:
+	return _draw(primary, hair, 0, 0, &"idle", 0, role)
 
 func face(toward: Vector3) -> void:
 	if toward.length_squared() > 0.01:
@@ -139,7 +140,8 @@ func _frames(primary: Color, hair: Color, hat: int, view: int) -> SpriteFrames:
 			frames.add_frame(animation, _draw(primary, hair, hat, i, animation, view))
 	return frames
 
-func _draw(coat: Color, hair: Color, hat: int, frame: int, animation: StringName, view: int) -> ImageTexture:
+func _draw(coat: Color, hair: Color, hat: int, frame: int, animation: StringName, view: int, preview_role := "") -> ImageTexture:
+	var role := profession if preview_role.is_empty() else preview_role
 	var img := Image.create(32, 40, false, Image.FORMAT_RGBA8)
 	var ink := Color("252631")
 	var leather := Color("574035")
@@ -245,12 +247,14 @@ func _draw(coat: Color, hair: Color, hat: int, frame: int, animation: StringName
 		_paint(img, 10, 7 + bob, 3, 12, deep)
 		_paint(img, 11, 6 + bob, 11, 3, gleam)
 		_paint(img, 10, 19 + bob, 6, 3, deep)
-	if profession == "forge" and not back:
+	if role == "forge" and not back:
 		_paint(img, 14, 16 + bob, 7, 3, hair)
 		_paint(img, 16, 18 + bob, 4, 2, hair.darkened(0.25))
-	if profession == "farm":
+	if role in ["farm", "farmer"]:
 		_paint(img, 7, 10 + bob, 18, 2, gold)
 		_paint(img, 12, 22 + bob, 8, 6, linen.darkened(0.25))
+	if not back:
+		_attire(img, role, bob, coat, leather, gold)
 	if animation == &"carry":
 		_paint(img, 17, 24 + bob, 8, 2, deep)
 		_paint(img, 23, 24 + bob, 3, 2, skin_light)
@@ -265,6 +269,29 @@ func _draw(coat: Color, hair: Color, hat: int, frame: int, animation: StringName
 		_paint(img, 23, tool_y, 6, 1, Color("a6b3a3") if profession != "farm" else Color("a7a085"))
 		_paint(img, 24, tool_y + 6, 3, 2, skin_light)
 	return ImageTexture.create_from_image(img)
+
+func _attire(img: Image, role: String, bob: int, coat: Color, leather: Color, gold: Color) -> void:
+	match role:
+		"forge", "smith", "builder", "artisan":
+			_paint(img, 13, 23 + bob, 7, 7, leather)
+			_paint(img, 14, 23 + bob, 5, 1, Color("ac8060"))
+			_paint(img, 17, 27 + bob, 2, 2, gold)
+		"doctor", "healer":
+			_paint(img, 16, 23 + bob, 5, 5, Color("35595b"))
+			_paint(img, 17, 24 + bob, 3, 3, Color("9ad6bb"))
+		"mage":
+			_paint(img, 11, 20 + bob, 11, 2, coat.lightened(0.46))
+			_paint(img, 16, 22 + bob, 3, 3, Color("c7b3ee"))
+		"archer", "carrier":
+			for index in 6:
+				_paint(img, 12 + index, 21 + bob + index, 2, 1, leather.lightened(0.28))
+		"warrior", "guard":
+			_paint(img, 11, 20 + bob, 3, 3, Color("a6b7bf"))
+			_paint(img, 19, 20 + bob, 3, 3, Color("869fa9"))
+			_paint(img, 15, 25 + bob, 4, 2, gold)
+		"market":
+			_paint(img, 12, 25 + bob, 5, 4, leather.lightened(0.30))
+			_paint(img, 13, 25 + bob, 2, 1, gold)
 
 func _paint(img: Image, x: int, y: int, w: int, h: int, color: Color) -> void:
 	img.fill_rect(Rect2i(x, y, w, h), color)

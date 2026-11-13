@@ -22,6 +22,10 @@ func _run() -> void:
 	career.new_game()
 	check(career.confirm_character("Eva do Amieiro", "farmer", "amieiro", 0, 0).is_empty()
 		and career.confirm_plot("sul-01").is_empty(), "nova agricultora registra seu terreno")
+	check(game.player.profession == "farmer", "traje em jogo acompanha a classe mesmo com cores iniciais")
+	var preview := career.preview_actor(0, 0, "farmer").get_image()
+	var other := career.preview_actor(0, 0, "smith").get_image()
+	check(preview.get_size() == Vector2i(32, 40) and preview.get_data() != other.get_data(), "prévia mantém escala pixel art e diferencia classes")
 	var life := career.life
 	var at := Homestead.center("sul-01", Vector2i(0, 0))
 	game.player.position = at

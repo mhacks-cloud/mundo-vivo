@@ -31,6 +31,7 @@ var target_models: Array[Node3D] = []
 var target_labels: Array[Label3D] = []
 var projectiles: Array[Dictionary] = []
 var default_appearance := Vector2i(-1, -1)
+var appearance_role := "player"
 var view_timer := 0.0
 
 func setup(scene: Node3D) -> void:
@@ -123,18 +124,20 @@ func camera_point(fallback: Vector3) -> Vector3:
 		return Homestead.center(plot_focus, Vector2i(2, 2)) + Vector3.UP * 0.50
 	return fallback
 
-func preview_actor(coat: int, hair: int) -> Texture2D:
-	return game.player.preview_texture(Color(LifeCatalog.COLORS[coat]), Color(LifeCatalog.HAIR[hair]))
+func preview_actor(coat: int, hair: int, role := "player") -> Texture2D:
+	return game.player.preview_texture(Color(LifeCatalog.COLORS[coat]), Color(LifeCatalog.HAIR[hair]), role)
 
 func _apply_appearance() -> void:
 	if life.profile.is_empty():
-		if default_appearance != Vector2i(0, 0):
+		if default_appearance != Vector2i(0, 0) or appearance_role != "player":
+			appearance_role = "player"
 			game.player.appearance(Color(LifeCatalog.COLORS[0]), Color(LifeCatalog.HAIR[0]))
 			default_appearance = Vector2i.ZERO
 		return
 	var selected := Vector2i(life.profile.coat, life.profile.hair)
-	if selected != default_appearance:
-		game.player.appearance(Color(LifeCatalog.COLORS[selected.x]), Color(LifeCatalog.HAIR[selected.y]))
+	if selected != default_appearance or appearance_role != life.role():
+		appearance_role = life.role()
+		game.player.appearance(Color(LifeCatalog.COLORS[selected.x]), Color(LifeCatalog.HAIR[selected.y]), appearance_role)
 		default_appearance = selected
 
 func active() -> bool:

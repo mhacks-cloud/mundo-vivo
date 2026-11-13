@@ -1,5 +1,12 @@
 # Changelog
 
+## Edição offline · apresentação
+
+- Praças, caminhos, sinalização, jardins e detalhes de trabalho em quatro localidades.
+- Fumaça de chaminé nos perfis médio e alto.
+- Acessórios em pixel art por classe e profissão, com prévia na criação de personagem.
+- Molduras e botões harmonizados nos painéis compartilhados.
+
 ## Edição offline · marco de integração
 
 - Diário com objetivos pacíficos, exploração, guilda e Ruína, com XP persistente.
