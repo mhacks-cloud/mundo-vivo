@@ -4,6 +4,10 @@ A suíte de sociedade acrescenta 13 verificações. A branch de desenvolvimento 
 
 A continuação liga a vaga da oficina à mudança de Beatriz e à construção de uma segunda moradia no Pouso. Há frete de enxadas e pedidos recorrentes de ferro, madeira, ferramentas e alimentos. A suíte de civilização exercita 30 dias de calendário em janelas aceleradas, com recargas periódicas. Ela inicia com oficina e estoque de demonstração. Não equivale a simular todos os turnos completos de uma campanha nova.
 
+A escassez anterior teve três causas: reposição condicionada a tratado, que dependia de entregas anteriores, disputa pelo trigo da banca e consumo que não devolvia receita ao mercado serrano. No relatório anterior, a capital caiu de 15 trigos no dia 1 para 1 no dia 8 e terminou sem estoque. Agora o ponto de pedido considera a população, a horta pode fornecer diretamente e a intendência paga refeições com verba finita. O reparo também pode substituir madeira por pedra.
+
+A simulação de abastecimento usa janelas aceleradas por dia e chama as rotinas reais de agricultura. O trecho do Vale roda com física; o comboio serrano usa os mesmos estados de rota e entrega. A descoberta da capital é habilitada pelo teste. A auditoria diária mede saldos e limites, sem constituir um balanço contábil completo de toda a campanha.
+
 Pendências: recrutamento e migração de múltiplos candidatos, cadeia física que leve o ferro do entreposto à oficina de destino, reposição sustentável de alimentos no cenário longo, receitas e festivais adicionais, camadas opcionais do Atlas e indicadores de desempenho. A coleta clandestina serrana continua limitada ao trigo.
 
 | Economia 4.4 | Escopo |

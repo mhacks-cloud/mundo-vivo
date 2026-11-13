@@ -2,6 +2,8 @@
 
 Pressione **U** para consultar a vida nas cidades, os caixas dos estabelecimentos, os salários e as notícias. A Feira da Colheita vende alimentos na praça no dia 11 de cada estação, das 08:00 às 19:00. O pedido de trigo volta ao quadro a cada três dias após o aceite anterior. Alto da Bruma exporta ferro ao entreposto quando há excedente.
 
+A capital solicita reposição abaixo de três dias de consumo. O painel **U** mostra a cobertura atual e as cargas em trânsito. Execute `godot --headless --path . --fixed-fps 60 --script res://tests/verify_supply.gd -- 96` para gerar a série diária acelerada.
+
 A suíte `tests/verify_society.gd` cobre carteiras, refeições, contratos, ferro, oficina e feira. `tests/verify_civilization.gd` acompanha a mudança de Beatriz, a obra no Pouso e o transporte de enxadas em janelas de 30 dias.
 
 **Vale do Amieiro** é o primeiro mapa jogável de um sandbox medieval offline. A vila é construída em 3D, com texturas pixeladas, personagens animados em 2D e iluminação que acompanha o relógio do vale.

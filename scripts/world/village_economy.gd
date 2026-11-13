@@ -8,6 +8,7 @@ var stock := VillageInventory.new()
 var journal := VillageJournal.new()
 var crop := 4
 var dry := false
+var supply_priority := false
 var crop_due := 0.0
 var demand := 0
 var last_forge := -90.0
@@ -40,6 +41,8 @@ func forge(clock: WorldClock) -> String:
 	return "Organiza a oficina"
 
 func market(clock: WorldClock) -> String:
+	if supply_priority and stock.amount("market", "alimentos") >= 4 and stock.amount("market", "trigo") <= 7:
+		return "Preserva a reserva de trigo"
 	if stock.craft("market", {"trigo": 2}, "alimentos", 3):
 		journal.record(clock, "market", "A banca preparou 3 rações a partir do trigo.")
 		return "Prepara as rações"

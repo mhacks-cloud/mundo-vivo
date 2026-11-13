@@ -30,6 +30,7 @@ func tick(game: Node3D) -> void:
 		_supply_relief(game, day)
 		return
 	last_day = day
+	bruma.forge_import(game.career.frontier, day)
 	var weather: Dictionary = game.simulation.climate.sample(day, 12.0)
 	drought = weather.humidity < float(rules.dry_humidity)
 	game.simulation.economy.dry = drought
@@ -44,15 +45,22 @@ func tick(game: Node3D) -> void:
 			_note("Prazo expirado · " + rules.contracts[id].issuer)
 	if "capital" in bruma.discovered:
 		diplomacy.advance(day, life, bruma)
-		_supply_relief(game, day)
+	_supply_relief(game, day)
 
 func _supply_relief(game: Node3D, day: int) -> void:
-	if not diplomacy.active("supply", day) or diplomacy.relation <= -60 or game.realms.world.stock.wheat >= 2:
+	var realm: RealmWorld = game.realms.world
+	game.simulation.economy.supply_priority = "capital" in realm.discovered and realm.stock.wheat < realm.wheat_target()
+	if not game.simulation.economy.supply_priority or diplomacy.relation <= -60:
+		return
+	var hour: float = game.simulation.clock.hour()
+	if hour < 7.0 or hour >= 18.0:
 		return
 	var village: VillageInventory = game.simulation.economy.stock
 	var frontier: FrontierTrade = game.career.frontier
-	if frontier.stock.wheat < 3 and frontier.dispatch_relief(village, day, frontier.road_closed):
-		_note("A banca de Lina despachou trigo pelo acordo de abastecimento.")
+	var source := "farm" if village.amount("farm", "trigo") >= 3 else "market"
+	var minimum := 3 if source == "farm" else 5
+	if frontier.stock.wheat < 3 and village.amount(source, "trigo") >= minimum and frontier.dispatch_relief(village, day, frontier.road_closed, source):
+		_note("O Vale separou três trigos para recompor a reserva da capital.")
 		game.career.caravan.reset()
 
 func location(game: Node3D) -> String:

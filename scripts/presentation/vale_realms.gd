@@ -113,7 +113,7 @@ func tick(delta: float) -> void:
 	var moving := (world.worker_at - worker.position) / maxf(delta, 0.001)
 	worker.position = world.worker_at
 	var step: int = world.project.get("step", -1)
-	worker.set_cargo(("ferro" if int(world.project.done) % 2 == 0 else "madeira") if step == 1 else "")
+	worker.set_cargo(("ferro" if int(world.project.done) % 2 == 0 else ("pedra" if world.project.get("material") == "stone" else "madeira")) if step == 1 else "")
 	worker.pose(moving, right, light, step == 3 and moving.length_squared() < 0.02)
 	var working := clock.hour() >= 7.0 and clock.hour() < 18.0
 	var mine_goal := RealmWorld.MINE + Vector3(1.1, 0, 0.4) if working else Vector3(57.5, 0.1, 34.0)

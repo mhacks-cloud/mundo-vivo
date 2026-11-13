@@ -48,6 +48,10 @@ var diplomacy: RealmDiplomacy
 var frontier_market: FrontierTrade
 var mining_total := 0
 var wheat_consumed := 0
+var food_spending := 0
+var imported_iron := 0
+var tools_made := 0
+var forge_day := -1
 var workshop_cash := 0
 var shared_funds := 0
 var forest_climate := RegionalClimate.new()
@@ -168,7 +172,7 @@ func extract(life: PlayerLife) -> bool:
 	return true
 
 func reserve(frontier: FrontierTrade, clock: WorldClock) -> bool:
-	var quote := frontier.retail_price("wheat") * 3
+	var quote := maxi(2, floori(frontier.price("wheat") * 0.55)) * 3
 	var toll := tariff(clock.total_day())
 	if (diplomacy != null and diplomacy.relation <= -60) or not shipment.is_empty() or not loot.is_empty() or clock.elapsed < next_convoy or frontier.stock.wheat < 3 or purse < quote + toll:
 		return false
@@ -201,6 +205,12 @@ func _reserve_export(frontier: FrontierTrade, clock: WorldClock, item: String, q
 	_record("Aldo carregou mercadorias compradas pelo entreposto.")
 	return true
 
+func daily_wheat_need() -> int:
+	return 2 if population >= 7 else 1
+
+func wheat_target() -> int:
+	return daily_wheat_need() * 3
+
 func advance(clock: WorldClock, frontier: FrontierTrade, delta: float, player_at := Vector3.INF) -> void:
 	frontier_market = frontier
 	if not loot.is_empty() and clock.elapsed >= float(loot.expires):
@@ -211,9 +221,9 @@ func advance(clock: WorldClock, frontier: FrontierTrade, delta: float, player_at
 			_daily(elapsed_day)
 		last_day = day
 	if shipment.is_empty():
-		if stock.wheat < 3 and clock.hour() >= 7.0 and clock.hour() <= 18.0:
-			reserve(frontier, clock)
-		elif clock.hour() >= 7.0 and clock.hour() < 18.0:
+		if stock.wheat < wheat_target() and clock.hour() >= 7.0 and clock.hour() <= 18.0 and reserve(frontier, clock):
+			return
+		if clock.hour() >= 7.0 and clock.hour() < 18.0:
 			if not reserve_iron(frontier, clock):
 				_reserve_export(frontier, clock, "hoe", 1, 2, 1)
 	else:
@@ -221,12 +231,17 @@ func advance(clock: WorldClock, frontier: FrontierTrade, delta: float, player_at
 
 func _daily(day: int) -> void:
 	var weather := climate.sample(day, 9.0)
-	var consumed := mini(int(stock.wheat), 2 if population >= 7 else 1)
+	var consumed := mini(int(stock.wheat), daily_wheat_need())
+	# A intendência compra a ração pública do mercado com orçamento finito.
+	var meal_payment := mini(treasury, consumed * 4)
+	treasury -= meal_payment
+	purse += meal_payment
+	food_spending += meal_payment
 	stock.wheat -= consumed
 	wheat_consumed += consumed
 	var mining := 0 if weather.weather in ["Neve", "Chuva"] else mini(2, mini(mine_units, int(LIMITS.iron) - int(stock.iron)))
 	stock.iron += mining
-	if mining > 0 and purse >= 2:
+	if mining > 0 and purse >= 2 and stock.wheat >= daily_wheat_need():
 		purse -= 2
 		entrepreneur_cash += 2
 	if mining > 0:
@@ -287,6 +302,8 @@ func _advance_convoy(clock: WorldClock, delta: float, player_at: Vector3) -> voi
 					shipment.wait = 2.0
 					return
 				destination[item] += shipment.quantity
+				if item == "iron":
+					imported_iron += int(shipment.quantity)
 				if item == "wheat":
 					deliveries += 1
 				_record("Aldo entregou %d × %s. Estoque de destino: %d." % [shipment.quantity, LifeCatalog.label(item), destination[item]])
@@ -365,6 +382,22 @@ func recover(life: PlayerLife, at: Vector3, now: float) -> bool:
 	_record("A carga perdida foi recolhida no desvio.")
 	return true
 
+func forge_import(frontier: FrontierTrade, day: int) -> bool:
+	if imported_iron < 1 or frontier.stock.iron < 1 or frontier.stock.wood < 2 or frontier.stock.hoe >= 4 or frontier.treasury < 2:
+		return false
+	if tools_made > 0 and forge_day == day:
+		return false
+	frontier.stock.iron -= 1
+	frontier.stock.wood -= 2
+	frontier.stock.hoe += 1
+	frontier.treasury -= 2
+	frontier.purse += 2
+	imported_iron -= 1
+	tools_made += 1
+	forge_day = day
+	_record("A ferraria do entreposto produziu uma enxada com ferro entregue.")
+	return true
+
 func propose(id: String, sponsor: String) -> String:
 	if id not in WORKS:
 		return "Proposta desconhecida."
@@ -372,6 +405,7 @@ func propose(id: String, sponsor: String) -> String:
 		return "Recusada · o bairro precisa de oficina e estrada aberta."
 	if id == "workshop" and (workshop or houses == 0 or entrepreneur_cash < WORKS.workshop.cost):
 		return "Recusada · a oficina exige moradia e 18 ouro do proponente."
+	var material := "stone" if id == "repair" and stock.wood < 2 else "wood"
 	var reason := ""
 	if not project.is_empty():
 		reason = "a equipe já está em obra"
@@ -379,7 +413,7 @@ func propose(id: String, sponsor: String) -> String:
 		reason = "o caminho alto está transitável"
 	elif id == "house" and (houses > 0 or deliveries < 2 or population < 6 or damaged):
 		reason = "o terreno precisa de duas entregas, seis moradores e caminho alto aberto"
-	elif (id != "workshop" and treasury + (shared_funds if id == "repair" else 0) < int(WORKS[id].cost)) or stock.wood < 2 or stock.iron < 2:
+	elif (id != "workshop" and treasury + (shared_funds if id == "repair" else 0) < int(WORKS[id].cost)) or stock[material] < 2 or stock.iron < 2:
 		reason = "faltam dois ferros, duas madeiras ou ouro"
 	if not reason.is_empty():
 		var refusal := "Recusada · %s." % reason
@@ -391,9 +425,9 @@ func propose(id: String, sponsor: String) -> String:
 		entrepreneur_cash -= int(WORKS[id].cost)
 	else:
 		treasury -= int(WORKS[id].cost) - subsidy
-	stock.wood -= 2
+	stock[material] -= 2
 	stock.iron -= 2
-	project = {"id": id, "step": 0, "done": 0, "wait": 0.6, "sponsor": sponsor.left(40), "wages": int(WORKS[id].cost)}
+	project = {"id": id, "step": 0, "done": 0, "wait": 0.6, "sponsor": sponsor.left(40), "wages": int(WORKS[id].cost), "material": material}
 	var approval := "Aprovada por Rainha Elira · %s." % WORKS[id].name
 	_record(approval)
 	return approval
@@ -408,13 +442,13 @@ func work(clock: WorldClock, delta: float) -> void:
 		entrepreneur_cash += 4
 		enterprise_day = day
 		_record("A oficina de Tomás entregou uma enxada ao mercado.")
-	if project.is_empty() and clock.hour() >= 7.0 and clock.hour() < 18.0 and stock.wood >= 2 and stock.iron >= 2:
-		if damaged and clock.total_day() > storms_day and treasury + shared_funds >= WORKS.repair.cost:
+	if project.is_empty() and clock.hour() >= 7.0 and clock.hour() < 18.0 and stock.iron >= 2:
+		if damaged and clock.total_day() > storms_day and treasury + shared_funds >= WORKS.repair.cost and (stock.wood >= 2 or stock.stone >= 2):
 			propose("repair", "Rainha Elira")
-		elif not damaged and deliveries >= 2 and houses == 0 and treasury >= WORKS.house.cost:
+		elif not damaged and stock.wood >= 2 and deliveries >= 2 and houses == 0 and treasury >= WORKS.house.cost:
 			population = maxi(6, population)
 			propose("house", "Rainha Elira")
-		elif houses > 0 and not workshop and entrepreneur_cash >= WORKS.workshop.cost and stock.hoe < 2:
+		elif stock.wood >= 2 and houses > 0 and not workshop and entrepreneur_cash >= WORKS.workshop.cost and stock.hoe < 2:
 			propose("workshop", "Tomás")
 	if project.is_empty() or clock.hour() < 7.0 or clock.hour() >= 18.0:
 		return
@@ -462,7 +496,7 @@ func snapshot() -> Dictionary:
 	if not fallen.is_empty():
 		fallen.at = _encode(fallen.at)
 		fallen.scout = _encode(fallen.scout)
-	return {"workshop": workshop, "enterprise_cash": entrepreneur_cash, "enterprise_day": enterprise_day, "mined": mining_total, "consumed": wheat_consumed, "wages": workshop_cash, "shared": shared_funds, "loot": fallen, "last_convoy": last_convoy, "treasury": treasury, "purse": purse, "stock": stock.duplicate(), "discovered": discovered.duplicate(),
+	return {"workshop": workshop, "enterprise_cash": entrepreneur_cash, "enterprise_day": enterprise_day, "mined": mining_total, "consumed": wheat_consumed, "food_spending": food_spending, "imported_iron": imported_iron, "tools_made": tools_made, "forge_day": forge_day, "wages": workshop_cash, "shared": shared_funds, "loot": fallen, "last_convoy": last_convoy, "treasury": treasury, "purse": purse, "stock": stock.duplicate(), "discovered": discovered.duplicate(),
 		"selected": selected, "active": active, "damaged": damaged, "storms_day": storms_day, "day": last_day,
 		"next": next_convoy, "mine": mine_units, "population": population, "houses": houses, "deliveries": deliveries,
 		"customs": customs, "shipment": cargo, "project": project.duplicate(), "worker": _encode(worker_at), "journal": journal.duplicate()}
@@ -475,6 +509,10 @@ func restore(data: Variant) -> void:
 	enterprise_day = int(LifeCatalog.number(data.get("enterprise_day"), -1, -1, 3650000))
 	mining_total = _bounded(data, "mined", 0)
 	wheat_consumed = _bounded(data, "consumed", 0)
+	food_spending = _bounded(data, "food_spending", 0)
+	imported_iron = _bounded(data, "imported_iron", 0)
+	tools_made = _bounded(data, "tools_made", 0)
+	forge_day = int(LifeCatalog.number(data.get("forge_day"), -1, -1, 3650000))
 	workshop_cash = _bounded(data, "wages", 0)
 	shared_funds = _bounded(data, "shared", 0, 1000)
 	treasury = _bounded(data, "treasury", 1100)
@@ -527,7 +565,7 @@ func restore(data: Variant) -> void:
 		var step := _bounded(job, "step", 0, 4)
 		project = {"id": job.id, "step": step, "done": _bounded(job, "done", 0, 4 if step == 4 else 3),
 			"wait": LifeCatalog.number(job.get("wait"), 0, 0, 8), "sponsor": str(job.get("sponsor", "Rainha Elira")).left(40),
-			"wages": _bounded(job, "wages", int(WORKS[job.id].cost), int(WORKS[job.id].cost))}
+			"material": "stone" if job.get("material") == "stone" else "wood", "wages": _bounded(job, "wages", int(WORKS[job.id].cost), int(WORKS[job.id].cost))}
 	journal.clear()
 	if data.get("journal") is Array:
 		for entry in data.journal.slice(0, 24):

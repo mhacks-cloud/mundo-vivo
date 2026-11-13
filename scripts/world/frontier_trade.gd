@@ -76,9 +76,9 @@ func dispatch(life: PlayerLife, day: int, detour := false) -> bool:
 	life.logbook("Frete para Brumária · 3 trigos carregados")
 	return true
 
-func dispatch_relief(village: VillageInventory, day: int, detour: bool) -> bool:
-	var reserved := freight_pay(detour)
-	if not shipment.is_empty() or day <= last_day or purse < reserved or not village.spend("market", {"trigo": BATCH}):
+func dispatch_relief(village: VillageInventory, day: int, detour: bool, source := "market") -> bool:
+	var reserved := 6 + (1 if detour else 0)
+	if not shipment.is_empty() or day <= last_day or purse < reserved or not village.spend(source, {"trigo": BATCH}):
 		return false
 	purse -= reserved
 	last_day = day

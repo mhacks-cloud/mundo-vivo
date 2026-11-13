@@ -52,7 +52,7 @@ func advance(day: int, vale: PlayerLife, bruma: RealmWorld) -> void:
 		return
 	if relation >= 15 and day % 3 == 1:
 		negotiate("trade", day, vale, bruma)
-	elif relation >= 6 and bruma.stock.wheat < 2:
+	elif relation >= 6 and bruma.stock.wheat < bruma.daily_wheat_need():
 		negotiate("supply", day, vale, bruma)
 	elif relation >= 20 and bruma.damaged:
 		negotiate("works", day, vale, bruma)

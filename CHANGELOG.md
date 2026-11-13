@@ -2,6 +2,10 @@
 
 ## 4.5 · desenvolvimento
 
+- Reposição antecipada com estoque real da horta ou da banca, pagamentos limitados e reserva para o Vale.
+- Reparo serrano pode usar pedra quando falta madeira. A ferraria do entreposto transforma ferro importado em enxadas.
+- Relatórios acelerados de 30, 60 e 96 dias e cobertura alimentar no painel de sociedade.
+
 - Salários e refeições de moradores no Vale, orçamentos domésticos e caixas de estabelecimentos.
 - Contrato recorrente de trigo, reputação por região e notícias persistentes.
 - Frete físico de ferro na rota serrana, oficina financiada por Tomás e feira com estoque próprio.

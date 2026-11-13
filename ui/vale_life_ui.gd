@@ -330,6 +330,17 @@ func open(next_page: String) -> void:
 			_body_text("Vale · %d moradores, %d lares e %d postos" % [town.people.size() - (1 if town.migration >= 6 else 0), town.families.size() - (1 if town.migration >= 6 else 0), TownSociety.EMPLOYERS.size()])
 			_body_text("Satisfação · Vale %d%% / Alto da Bruma %d%%" % [town.satisfaction(game, "vale"), town.satisfaction(game, "capital")])
 			_body_text("Alto da Bruma · %d habitantes · %d moradia nova" % [realm.population, realm.houses])
+			var need := realm.daily_wheat_need()
+			var frontier: FrontierTrade = service.frontier
+			_body_text("Trigo · Vale %d / Entreposto %d / Capital %d" % [
+				game.simulation.economy.stock.amount("market", "trigo"), frontier.stock.wheat, realm.stock.wheat])
+			_body_text("Capital · %d/dia · %.1f dias de estoque · reserva-alvo %d" % [need, float(realm.stock.wheat) / need, realm.wheat_target()])
+			if frontier.shipment.get("relief") == true:
+				_body_text("Reposição do Vale · 3 trigos em trânsito")
+			if realm.shipment.get("item") == "wheat":
+				_body_text("Suprimentos para a capital · " + String(realm.shipment.status).to_lower())
+			_body_text("Pouso · %d vaga e %d moradia nova disponível" % [
+				1 if realm.workshop and town.migration < 6 else 0, 1 if realm.houses >= 2 and town.migration < 6 else 0])
 			_body_text("Beatriz · " + TownSociety.MIGRATION[town.migration].replace("_", " ").to_lower())
 			for id in TownSociety.SHOPS:
 				var shop: Dictionary = town.shops[id]

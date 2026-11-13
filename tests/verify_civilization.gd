@@ -55,6 +55,18 @@ func _run() -> void:
 	check(seen_works and seen_travel and town.migration == 6 and maximum_population == 8 and world.houses == 2,
 		"vaga, obra, viagem e ocupação alteram a população uma vez")
 	check(seen_tool and seen_fair, "ferramenta transportada e feira aberta durante a simulação")
+	var frontier_iron: int = trade.stock.iron
+	var frontier_wood: int = trade.stock.wood
+	var frontier_tools: int = trade.stock.hoe
+	var cash_total := trade.treasury + trade.purse
+	var imported := RealmWorld.new()
+	imported.imported_iron = 3
+	trade.stock.hoe = 0
+	check(imported.forge_import(trade, 30) and not imported.forge_import(trade, 30)
+		and trade.stock.iron == frontier_iron - 1 and trade.stock.wood == frontier_wood - 2
+		and trade.stock.hoe == 1 and trade.treasury + trade.purse == cash_total,
+		"ferraria consome ferro e madeira, conserva ouro e produz uma vez por dia")
+	trade.stock.hoe = frontier_tools
 	check(stock.amount("market", "alimentos") >= 0 and town.news.size() <= 24, "estoque da feira e notícias limitados")
 	for suffix in ["", ".previous", ".pre-4.1.bak"]:
 		DirAccess.remove_absolute(game.save_path + suffix)
