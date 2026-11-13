@@ -1,4 +1,8 @@
-# Estado da implementação · Mundo Vivo 4.4
+# Estado da implementação · Mundo Vivo 4.5
+
+A suíte de sociedade acrescenta 13 verificações. A branch de desenvolvimento entrega salários, compras e lares do elenco do Vale, o pedido recorrente de trigo, transporte de ferro, a oficina de Tomás, uma feira e notícias baseadas em eventos. Os saves 4.4 ganham campos opcionais. A oficina utiliza a equipe e as etapas de obra física de Alto da Bruma.
+
+Ainda faltam migração entre cidades e recrutamento autônomo, múltiplas empresas e novos bairros, fretes de ferramentas e demais produtos, integração do ferro transportado com a produção do Vale, mais periodicidades de contratos e atividades como pesca e culinária. A licença da oficina utiliza um terreno fixo. Ferro perdido é recuperável no local, mas a coleta clandestina serrana continua limitada ao trigo.
 
 | Economia 4.4 | Escopo |
 | --- | --- |

@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.5 · desenvolvimento
+
+- Salários e refeições de moradores no Vale, orçamentos domésticos e caixas de estabelecimentos.
+- Contrato recorrente de trigo, reputação por região e notícias persistentes.
+- Frete físico de ferro na rota serrana, oficina financiada por Tomás e feira com estoque próprio.
+- Painel de sociedade e indicadores no atlas.
+
 ## 4.4.0
 
 - Painel econômico com estoques reais, preço do trigo no Vale, tesouros e pedidos com prazo, reserva e entrega parcial.

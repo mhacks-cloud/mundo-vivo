@@ -1416,6 +1416,12 @@ A guarda opera com linha de visão, relato identificado e tempo de comunicação
 
 A Prefeitura aceita propostas, aplica o cadastro de terrenos e reserva orçamento e materiais. A mestra Iara se desloca entre depósito e canteiro durante a jornada. A conclusão libera o acesso norte, aumenta a capacidade do mercado ou melhora a observação da guarda, conforme o projeto. A enchente usa clima de Brumária e exige a Ponte Nova pronta. Durante a interdição, a navegação e o preço de varejo do trigo refletem o desvio.
 
+## Sociedade jogável na 4.5
+
+Os moradores do Vale recebem do caixa do empregador ao cumprir a primeira tarefa da jornada. A refeição debita carteira ou orçamento doméstico e credita banca e administração. Contribuições domésticas e manutenção circulam entre os mesmos caixas. Os valores iniciais são dotações de uma nova partida ou migração, e os saldos persistem.
+
+O entreposto compra ferro serrano e a carroça usa a estrada no sentido inverso. A oficina de Tomás é financiada com rendimentos da mineração e consome ferro e madeira para abastecer o mercado. A feira retira rações da banca e só vende seu estoque. Eventos e entregas registrados aparecem no painel de sociedade.
+
 ## Economia e diplomacia jogáveis na 4.4
 
 Os mercados mantêm seus estoques anteriores. Pedidos reservam o pagamento no tesouro de origem e recebem produtos reais. Um pedido vencido ou cancelado devolve a reserva. A fronteira cobra o valor do tratado em vigor quando a caravana passa. A seca prolonga a maturação da horta, e o acordo de abastecimento pode despachar trigo da banca pela estrada. A cooperação reserva ouro para reparos físicos.

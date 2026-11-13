@@ -12,7 +12,9 @@ Outros pontos de retomada:
 - `verify_expansion.gd` cobre os fluxos novos. As quatro suítes anteriores continuam em `tests/`.
 - `GAME_DESIGN_DOCUMENT.md` reúne as regras aprovadas. `IMPLEMENTATION_STATUS.md` registra as lacunas.
 
-## Próxima entrega · cadeias comerciais e aprofundamento das nações
+## Próxima entrega · sociedade e cadeias comerciais
+
+Completar migração com vagas e habitação, integrar ferro e ferramentas em uma cadeia de dois fretes, ampliar negócios licenciáveis e adicionar contratos por estoque e projeto.
 
 Ampliar os comboios para ferro e ferramentas, fechar os ciclos de receitas e despesas dos moradores e expandir o histórico econômico por produto.
 
