@@ -1416,6 +1416,10 @@ A guarda opera com linha de visão, relato identificado e tempo de comunicação
 
 A Prefeitura aceita propostas, aplica o cadastro de terrenos e reserva orçamento e materiais. A mestra Iara se desloca entre depósito e canteiro durante a jornada. A conclusão libera o acesso norte, aumenta a capacidade do mercado ou melhora a observação da guarda, conforme o projeto. A enchente usa clima de Brumária e exige a Ponte Nova pronta. Durante a interdição, a navegação e o preço de varejo do trigo refletem o desvio.
 
+## Economia e diplomacia jogáveis na 4.4
+
+Os mercados mantêm seus estoques anteriores. Pedidos reservam o pagamento no tesouro de origem e recebem produtos reais. Um pedido vencido ou cancelado devolve a reserva. A fronteira cobra o valor do tratado em vigor quando a caravana passa. A seca prolonga a maturação da horta, e o acordo de abastecimento pode despachar trigo da banca pela estrada. A cooperação reserva ouro para reparos físicos.
+
 ## Expansão territorial jogável na 4.3
 
 A Coroa do Amieiro mantém o Vale agrícola, o bosque e a Ponte Nova. Brumária tem um entreposto, uma ruína e a capital Alto da Bruma, governada por Rainha Elira. O portão permite cruzar entre os cenários no mesmo relógio. Fora da capital, a simulação conserva estoques, carregamentos e etapas da obra sem instanciar o cenário serrano. Salmar aparece como porto futuro.

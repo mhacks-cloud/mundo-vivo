@@ -1,4 +1,10 @@
-# Estado da implementação · Mundo Vivo 4.3
+# Estado da implementação · Mundo Vivo 4.4
+
+| Economia 4.4 | Escopo |
+| --- | --- |
+| Implementado | Preço dinâmico de trigo no Vale, estoques locais, pedidos com pagamento reservado, forja serrana, tratados, taxas na rota e financiamento de reparos. |
+| Parcial | O abastecimento internacional automatizado transporta trigo. Medicina e artesanato participam por receitas existentes e pedidos. A seca alonga a maturação dos cultivos de Teresa. |
+| Pendente | Caravanas de exportação de ferro e ferramentas, orçamentos individuais para toda a população, estufas, contratos recorrentes e séries históricas completas de preços. |
 
 | Estado | Significado |
 | --- | --- |

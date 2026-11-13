@@ -1,4 +1,4 @@
-# Mundo Vivo 4.3
+# Mundo Vivo 4.4
 
 **Vale do Amieiro** é o primeiro mapa jogável de um sandbox medieval offline. A vila é construída em 3D, com texturas pixeladas, personagens animados em 2D e iluminação que acompanha o relógio do vale.
 
@@ -208,6 +208,14 @@ A versão 3.0 mantém o layout e o renderizador Compatibility da 2.0. Os sprites
 ### Escopo atual
 
 O combate é de treino PvE, com alvos fixos e uma aliada. Criaturas livres, expedições, escolta de caravanas, especializações, troca de nação e multiplayer ficam para versões futuras. Os lotes são privados e a construção é aditiva. As portas instaladas são passagens abertas. O calendário pode avançar ao reabrir, conforme a configuração do Vale, enquanto o inventário e as transações voltam ao estado gravado.
+
+## Jogar a expansão 4.4
+
+Pressione **K** para consultar estoques, preços, tesouros, tratados e pedidos. Aceite e entregue pedidos no quadro da praça do Vale ou no mercado indicado. O pagamento fica reservado até a conclusão. **P** abre o atlas com preços do trigo e relação entre os reinos. Na capital serrana, a forja atende ferreiros e o mercado compra ferramentas novas.
+
+```sh
+godot --headless --path . --fixed-fps 60 --script res://tests/verify_economy.gd
+```
 
 ## Jogar a expansão 4.3
 

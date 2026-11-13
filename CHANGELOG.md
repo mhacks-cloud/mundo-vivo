@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.4.0
+
+- Painel econômico com estoques reais, preço do trigo no Vale, tesouros e pedidos com prazo, reserva e entrega parcial.
+- Relação entre Amieiro e Brumária, tratados com vencimento, tarifas de fronteira, abastecimento físico e financiamento compartilhado.
+- Forja e comércio de ferramentas em Alto da Bruma, consumo de trigo, extração serrana e pagamentos por obras.
+- Campos opcionais no salvamento e suíte de integração econômica.
+
 ## 4.3.0
 
 - Atlas interativo com descoberta persistente, seleção de destino, clima e conexões ligadas às obras e enchentes.

@@ -12,7 +12,9 @@ Outros pontos de retomada:
 - `verify_expansion.gd` cobre os fluxos novos. As quatro suítes anteriores continuam em `tests/`.
 - `GAME_DESIGN_DOCUMENT.md` reúne as regras aprovadas. `IMPLEMENTATION_STATUS.md` registra as lacunas.
 
-## Próxima entrega · aprofundamento das nações
+## Próxima entrega · cadeias comerciais e aprofundamento das nações
+
+Ampliar os comboios para ferro e ferramentas, fechar os ciclos de receitas e despesas dos moradores e expandir o histórico econômico por produto.
 
 Alto da Bruma já tem mercado, pedreira e autoridade próprios. As próximas lacunas são cidade natal jogável em Brumária, lotes serranos, legislação aplicada a mais ocorrências e projetos públicos além de reparo e moradia. Acrescentar conteúdo costeiro antes de liberar Salmar e ampliar as cadeias com rotas de exportação de minério e madeira.
 
