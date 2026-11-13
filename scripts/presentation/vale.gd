@@ -440,8 +440,10 @@ func _refresh_quality() -> void:
 	sun.shadow_blur = 2.1 if quality == 2 else 1.55
 	camera.far = [59.0, 83.0, 115.0][quality]
 	diorama.foliage.quality(quality)
+	diorama.set_urban_quality(quality)
 	if is_instance_valid(realms.scene):
 		realms.scene.foliage.quality(quality)
+		realms.scene.set_urban_quality(quality)
 	env.fog_enabled = quality > 0
 	for lamp in diorama.lanterns:
 		lamp.visible = quality > 0

@@ -77,11 +77,27 @@ func _ready() -> void:
 				flower(p)
 			if i % 9 == 0:
 				shrub(p)
+	_dress_capital()
 	ground.set_shader_parameter("footprints", footprints)
 	foliage.build()
 	_flush()
 	add_child(worksite)
 	barricade = collider(Vector3(46.1, 0.45, 39.0), Vector3(0.5, 0.9, 2.85), self)
+
+func _dress_capital() -> void:
+	paving(Vector3(55.2, 0.005, 41.5), Vector2(5.0, 3.15), "cobble")
+	paving(Vector3(55.2, 0.012, 43.0), Vector2(5.0, 0.14), "mossstone")
+	_urban_strip(Vector3(54, 0, 42), Vector3(55.6, 0, 38.3), 1.25, "cobble")
+	_urban_strip(Vector3(57, 0, 42), Vector3(61.65, 0, 44.65), 1.15, "trail")
+	_banner(Vector3(55.05, 2.04, 37.16), "teal")
+	_banner(Vector3(56.3, 2.04, 37.16), "teal")
+	bench(Vector3(54.1, 0, 43.7))
+	_planter(Vector3(53.65, 0, 43.5))
+	_cart(Vector3(50.4, 0, 36.4))
+	for at in [Vector3(51.65, 0, 37.5), Vector3(60.3, 0, 41.05), Vector3(63.15, 0, 44.35)]:
+		_crate(at)
+	_chimney_smoke(Vector3(60.85, 3.40, 42.15))
+	sign_label(Vector3(52.6, 1.05, 40.05), "PRAÇA DA COROA", 0.0048)
 
 func weather(index: int, wet: bool, snow: bool, light: float) -> void:
 	foliage.atmosphere(index, wet)
@@ -122,10 +138,15 @@ func sync(world: RealmWorld) -> void:
 	if world.houses > 0 and not has_meta("built_hamlet"):
 		set_meta("built_hamlet", true)
 		house(RealmWorld.HAMLET + Vector3(1.05, 0, -1.6), 2.85, 2.25, 1.95, "sage", "slateroof", "teal", "Pouso da Geada")
+		_urban_strip(Vector3(61.0, 0, 49.2), Vector3(62.05, 0, 48.8), 0.92, "cobble")
+		bench(Vector3(63.25, 0, 49.1))
+		_planter(Vector3(62.85, 0, 49.45))
 		batch_root = worksite
 	if world.houses >= 2 and not has_meta("built_district"):
 		set_meta("built_district", true)
 		house(Vector3(59.4, 0, 52.1), 2.6, 2.0, 1.85, "ivory", "slateroof", "teal", "Casa de Beatriz")
+		_urban_strip(Vector3(61, 0, 49.2), Vector3(59.4, 0, 50.95), 0.9, "trail")
+		_planter(Vector3(58.2, 0, 50.7))
 	if world.workshop and not has_meta("built_workshop"):
 		set_meta("built_workshop", true)
 		house(RealmWorld.WORKS.workshop.at + Vector3(0.7, 0, -1.7), 2.7, 2.1, 1.9, "sage", "slateroof", "teal", "Oficina do Pouso")

@@ -176,6 +176,7 @@ func _sync_scene() -> void:
 		scene = BrumaDiorama.new()
 		game.add_child(scene)
 		scene.foliage.quality(game.quality)
+		scene.set_urban_quality(game.quality)
 		scene.sync(world)
 		worker = _actor("Mestra Avelina", world.worker_at, "946c57", 2, "carrier")
 		miner = _actor("Tomás · mineiro", RealmWorld.MINE + Vector3(1, 0, 0.3), "77838a", 3, "guard")

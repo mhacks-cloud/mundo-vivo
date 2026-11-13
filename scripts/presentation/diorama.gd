@@ -19,6 +19,7 @@ var trunks := CylinderMesh.new()
 var batch_root: Node3D
 var footprints := PackedVector4Array()
 var occluded: Array[Node3D] = []
+var smoke_sources: Array[GPUParticles3D] = []
 var crop_full := Node3D.new()
 var crop_sprouts := Node3D.new()
 
@@ -35,6 +36,7 @@ func _ready() -> void:
 	add_child(foliage)
 	_build_land()
 	_build_village()
+	_dress_village()
 	_ground_cover()
 	ground.set_shader_parameter("footprints", footprints)
 	foliage.build()
@@ -138,6 +140,77 @@ func _build_village() -> void:
 		barrel(point)
 	for i in 5:
 		box(Vector3(6.4, 0.2 + 0.15 * (i % 2), -12.8 - i * 0.19), Vector3(2.1, 0.18, 0.18), "oak")
+
+func _dress_village() -> void:
+	# Camadas de piso e objetos baixos nos recuos. A circulação usa a malha original.
+	_urban_strip(Vector3(-5.8, 0, 1.9), Vector3(8.6, 0, 1.9), 1.4, "cobble")
+	_urban_strip(Vector3(-7.1, 0, 2), Vector3(-9.9, 0, 7.8), 1.15, "trail")
+	_urban_strip(Vector3(19.2, 0, -8.2), Vector3(29.5, 0, -8.2), 1.62, "cobble")
+	paving(Vector3(22.8, 0.01, -7.4), Vector2(5.1, 3.4), "cobble")
+	paving(Vector3(22.8, 0.014, -5.93), Vector2(5.1, 0.17), "mossstone")
+	sign_label(Vector3(5.6, 1.04, 1.35), "PRAÇA DO AMIEIRO", 0.0049)
+	sign_label(Vector3(21.4, 1.12, -6.15), "ENTREPOSTO DE BRUMÁRIA", 0.0046)
+	for at in [Vector3(24.9, 0, -6.5), Vector3(23.5, 0, -6.25), Vector3(-10.65, 0, 7.3)]:
+		_crate(at)
+	for at in [Vector3(-4.9, 0, 3.83), Vector3(5.1, 0, 4.1), Vector3(24.2, 0, -5.8)]:
+		_planter(at)
+	bench(Vector3(24.7, 0, -5.55))
+	_cart(Vector3(26.3, 0, -10.1))
+	_banner(Vector3(3.55, 1.83, -4.25), "teal")
+	_banner(Vector3(22.85, 1.52, -6.45), "wine")
+	_chimney_smoke(Vector3(-8.05, 3.9, -7.3))
+	_chimney_smoke(Vector3(-10.0, 3.45, 2.2))
+
+func _urban_strip(from: Vector3, to: Vector3, width: float, material: String) -> void:
+	var direction := to - from
+	box((from + to) * 0.5 + Vector3.UP * 0.004, Vector3(width, 0.028, direction.length() + 0.1),
+		material, Vector3(0, atan2(direction.x, direction.z), 0))
+
+func _banner(at: Vector3, material: String) -> void:
+	box(at - Vector3.UP * 0.44, Vector3(0.09, 1.65, 0.09), "wood")
+	box(at + Vector3(0.32, 0.22, 0), Vector3(0.76, 0.08, 0.08), "oak")
+	box(at + Vector3(0.36, -0.11, 0.03), Vector3(0.57, 0.62, 0.045), material)
+	box(at + Vector3(0.36, -0.38, 0.058), Vector3(0.57, 0.06, 0.018), "brass")
+
+func _chimney_smoke(at: Vector3) -> void:
+	var smoke := GPUParticles3D.new()
+	smoke.position = at
+	smoke.amount = 8
+	smoke.lifetime = 3.2
+	smoke.visibility_aabb = AABB(Vector3(-1, -1, -1), Vector3(5, 6, 4))
+	var motion := ParticleProcessMaterial.new()
+	motion.direction = Vector3(0.38, 1.0, 0.15)
+	motion.spread = 14
+	motion.gravity = Vector3(0.04, 0.05, 0.03)
+	motion.initial_velocity_min = 0.38
+	motion.initial_velocity_max = 0.68
+	motion.scale_min = 0.65
+	motion.scale_max = 1.3
+	var gradient := Gradient.new()
+	gradient.colors = PackedColorArray([Color(0.78, 0.76, 0.70, 0.29), Color(0.64, 0.67, 0.65, 0)])
+	var fade := GradientTexture1D.new()
+	fade.gradient = gradient
+	motion.color_ramp = fade
+	smoke.process_material = motion
+	var plume := SphereMesh.new()
+	plume.radius = 0.18
+	plume.height = 0.31
+	plume.radial_segments = 6
+	plume.rings = 2
+	var vapor := StandardMaterial3D.new()
+	vapor.vertex_color_use_as_albedo = true
+	vapor.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	vapor.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	plume.material = vapor
+	smoke.draw_pass_1 = plume
+	smoke.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(smoke)
+	smoke_sources.append(smoke)
+
+func set_urban_quality(quality: int) -> void:
+	for smoke in smoke_sources:
+		smoke.emitting = quality > 0
+		smoke.visible = quality > 0
 
 func house(p: Vector3, w: float, d: float, h: float, wall: String, roof: String, door: String, sign_text := "") -> void:
 	var appearance := footprints.size()
