@@ -144,7 +144,7 @@ func arrived(plan: Dictionary) -> void:
 			_work_at_stop(plan)
 
 func _buy_food(plan: Dictionary) -> bool:
-	if society != null and (society.people[plan.id].meal == world.clock.total_day() or not society.afford_food(plan.id)):
+	if society != null and not society.afford_food(plan.id):
 		return false
 	if not world.economy.buy(world.clock, plan.name):
 		return false
