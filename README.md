@@ -1,4 +1,6 @@
-# Mundo Vivo 4.5 · desenvolvimento
+# Mundo Vivo · edição offline em desenvolvimento
+
+**N** abre o diário de campanha. A margem do Amieiro permite pescar com sementes como isca. O menu principal oferece configurações persistentes. Consulte o [acompanhamento da edição offline](docs/MASTER_BUILD_PROGRESS.md) para controles e critérios pendentes.
 
 Pressione **U** para consultar a vida nas cidades, os caixas dos estabelecimentos, os salários e as notícias. A Feira da Colheita vende alimentos na praça no dia 11 de cada estação, das 08:00 às 19:00. O pedido de trigo volta ao quadro a cada três dias após o aceite anterior. Alto da Bruma exporta ferro ao entreposto quando há excedente.
 

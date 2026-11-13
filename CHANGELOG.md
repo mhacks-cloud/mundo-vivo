@@ -1,5 +1,11 @@
 # Changelog
 
+## Edição offline · marco de integração
+
+- Diário com objetivos pacíficos, exploração, guilda e Ruína, com XP persistente.
+- Pesca limitada por dia, consumo de isca e peixe utilizável na bolsa.
+- Configurações persistentes, créditos, continuar e presets de exportação para Windows e Linux.
+
 ## 4.5 · desenvolvimento
 
 - Reposição antecipada com estoque real da horta ou da banca, pagamentos limitados e reserva para o Vale.
