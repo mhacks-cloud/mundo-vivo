@@ -143,13 +143,13 @@ func unequip(id: String) -> bool:
 	return true
 
 func use_item(id: String) -> bool:
-	if (id in ["health", "food"] and hp < max_hp()) or (id == "mana" and mana < max_mana()):
+	if (id in ["health", "food", "fish"] and hp < max_hp()) or (id == "mana" and mana < max_mana()):
 		if not bag.spend({id: 1}):
 			return false
 		if id == "mana":
 			mana = minf(max_mana(), mana + 45)
 		else:
-			hp = minf(max_hp(), hp + (45 if id == "health" else 14))
+			hp = minf(max_hp(), hp + (45 if id == "health" else 10 if id == "fish" else 14))
 		changed.emit()
 		return true
 	return false

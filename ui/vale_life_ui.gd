@@ -92,7 +92,12 @@ func update_status() -> void:
 
 func main_menu(slots: Array[Dictionary]) -> void:
 	_reset("menu", "VALE DO AMIEIRO", "Mundo Vivo", true)
+	if not slots.is_empty():
+		var latest := slots[0]
+		_button(body, "Continuar · " + latest.label, func() -> void: service.open_save(latest))
 	_button(body, "Nova partida", service.new_game)
+	_button(body, "Configurações", settings)
+	_button(body, "Créditos", credits)
 	for slot in slots:
 		var entry := slot
 		var label: String = ("Recuperar · " if entry.recover else "Carregar · ") + entry.label
@@ -100,6 +105,48 @@ func main_menu(slots: Array[Dictionary]) -> void:
 	if slots.is_empty():
 		_body_text("Crie um personagem para começar no Vale.")
 	_button(body, "Sair", func() -> void: get_tree().quit())
+
+func credits() -> void:
+	_reset("credits", "MUNDO VIVO", "Créditos", true)
+	_body_text("Mundo Vivo · RPG sandbox medieval offline\nConstruído com Godot. Arte e áudio do projeto.")
+	_button(body, "Voltar", service.start_menu)
+
+func settings() -> void:
+	_reset("settings", "MUNDO VIVO", "Configurações", true)
+	var game: Node3D = service.game
+	var screen := _pick([Vector2i(960, 540), Vector2i(1280, 720), Vector2i(1600, 900)], func(value: Vector2i) -> String:
+		return "%d × %d" % [value.x, value.y])
+	screen.select(game.preferences.resolution)
+	screen.item_selected.connect(func(index: int) -> void:
+		game.preferences.resolution = index
+		game.apply_preferences())
+	var mode := _pick(["Janela", "Tela cheia"], func(value: String) -> String: return value)
+	mode.select(1 if game.preferences.fullscreen else 0)
+	mode.item_selected.connect(func(index: int) -> void:
+		game.preferences.fullscreen = index == 1
+		game.apply_preferences())
+	var quality := _pick(["Baixa", "Média", "Alta"], func(value: String) -> String: return value)
+	quality.select(game.quality)
+	quality.item_selected.connect(func(index: int) -> void:
+		game.preferences.quality = index
+		game.apply_preferences())
+	_setting_slider("Volume geral", game.preferences.volume, 0.0, 1.0, func(value: float) -> void:
+		game.preferences.volume = value
+		game.apply_preferences())
+	_setting_slider("Sensibilidade da câmera", game.preferences.sensitivity, 0.4, 2.0, func(value: float) -> void:
+		game.preferences.sensitivity = value
+		game.apply_preferences())
+	_button(body, "Voltar", service.start_menu)
+
+func _setting_slider(label: String, value: float, low: float, high: float, callback: Callable) -> void:
+	_body_text(label)
+	var slider := HSlider.new()
+	slider.min_value = low
+	slider.max_value = high
+	slider.step = 0.05
+	slider.value = value
+	body.add_child(slider)
+	slider.value_changed.connect(callback)
 
 func creator() -> void:
 	_reset("creator", "M U N D O  V I V O   /   0 4", "Sua vida começa aqui", true)
@@ -322,6 +369,15 @@ func open(next_page: String) -> void:
 				_action(option.name + price, "royal", id)
 			for index in range(works.decisions.size() - 1, maxi(-1, works.decisions.size() - 5), -1):
 				_body_text(works.decisions[index])
+		"campaign":
+			_reset(next_page, "DIÁRIO DE CAMPANHA", "Seu caminho no Vale")
+			for id in CampaignJournal.TASKS:
+				var task: Array = CampaignJournal.TASKS[id]
+				_body_text("%s · %d XP\n%s" % [task[0], task[2], task[1]])
+				if id in service.journal.claimed:
+					_body_text("Concluído")
+				elif service.journal.ready(id, service.game):
+					_action("Registrar objetivo", "campaign_claim", id)
 		"society":
 			_reset(next_page, "SOCIEDADE", "Vida nas cidades")
 			var game: Node3D = service.game

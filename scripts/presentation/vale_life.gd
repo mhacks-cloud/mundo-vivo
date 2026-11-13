@@ -9,6 +9,8 @@ const STATIONS := {
 const GATHER := {"wood": Vector3(-13.9, 0.1, -4.90), "herb": Vector3(-4.7, 0.1, 8.7),
 	"stone": Vector3(20.2, 0.1, -13.80), "iron": Vector3(22.0, 0.1, -17.0)}
 var life := PlayerLife.new()
+var journal := CampaignJournal.new()
+const FISHING := Vector3(9.1, 0.1, 5.9)
 var training := TrainingSession.new()
 var ruin := ValeRuin.new()
 var frontier := FrontierTrade.new()
@@ -63,6 +65,7 @@ func new_game() -> void:
 	game.realms.reset()
 	game.markets.restore(null)
 	game.society.restore(null)
+	journal.restore(null)
 	start_setup()
 
 func open_save(entry: Dictionary) -> void:
@@ -107,7 +110,7 @@ func confirm_plot(plot: String) -> String:
 	ui.hide_panel()
 	ui.update_status()
 	game._save()
-	game.hud.show_message("Terreno registrado. H abre a construção na zona residencial ao sul.")
+	game.hud.show_message("Terreno registrado. H abre a construção. N abre o diário de campanha.")
 	return ""
 
 func show_plot(plot: String) -> void:
@@ -142,9 +145,10 @@ func snapshot() -> Dictionary:
 	for shot in projectiles:
 		var p: Vector3 = shot.node.position
 		shots.append({"at": [p.x, p.y, p.z], "target": shot.target, "amount": shot.amount})
-	return {"life": life.snapshot(), "training": training.snapshot(), "ruin": ruin.run.snapshot(), "frontier": frontier.snapshot(), "guild": guild.snapshot(), "authority": authority.snapshot(), "shots": shots}
+	return {"campaign": journal.snapshot(), "life": life.snapshot(), "training": training.snapshot(), "ruin": ruin.run.snapshot(), "frontier": frontier.snapshot(), "guild": guild.snapshot(), "authority": authority.snapshot(), "shots": shots}
 
 func restore(data: Variant) -> void:
+	journal.restore(data.get("campaign") if data is Dictionary else null)
 	life.restore(data.get("life") if data is Dictionary else null)
 	training.restore(data.get("training") if data is Dictionary else null)
 	ruin.restore(data.get("ruin") if data is Dictionary else null)
@@ -263,6 +267,8 @@ func input_event(event: InputEvent) -> bool:
 		_toggle("build")
 	elif _key(event, KEY_M):
 		_toggle("contracts")
+	elif _key(event, KEY_N):
+		_toggle("campaign")
 	elif _key(event, KEY_L):
 		_toggle("justice")
 	elif _key(event, KEY_F):
@@ -352,6 +358,8 @@ func open_near(page: String) -> void:
 func perform(verb: String, id: String) -> String:
 	if not active():
 		return "Registre seu personagem."
+	if verb == "campaign_claim":
+		return "Marco registrado." if journal.claim(id, game) else "Objetivo ainda pendente ou já registrado."
 	if verb.begins_with("economy_"):
 		return game.markets.act(game, id, verb)
 	if verb.begins_with("bruma_"):
@@ -427,7 +435,15 @@ func perform(verb: String, id: String) -> String:
 				success = life.farm(Vector2i(int(args[0]), int(args[1])), args[2], clock.elapsed, game.raining, climate.temperature)
 	return "Concluído." if success else "Ação indisponível. Confira local, requisitos, estoque, capacidade e saldo."
 
+func _fish() -> void:
+	if not active() or authority.detained():
+		return
+	var clock: WorldClock = game.simulation.clock
+	var weather: Dictionary = game.simulation.climate.sample(clock.total_day(), clock.hour())
+	game.hud.show_message(journal.fish(life, clock.total_day(), weather.weather))
+
 func _register() -> void:
+	game.interactions.register("Margem do Amieiro · pescar", FISHING, _fish, 1.8)
 	game.interactions.register("Companhia do Vau", GuildLedger.HALL, func() -> void: ui.open("guild"), 1.6)
 	game.interactions.register("Mercado de Brumária", FrontierTrade.DESTINATION, func() -> void: ui.open("frontier"), 1.8)
 	game.interactions.register("Quadro de fretes", FrontierTrade.ORIGIN, func() -> void: ui.open("freight"), 1.8)

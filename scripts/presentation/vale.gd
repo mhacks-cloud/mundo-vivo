@@ -45,6 +45,7 @@ var hidden_marker := Label3D.new()
 var bridge_target: Dictionary
 var last_climate_update := 0.0
 var visual_time := 0.0
+var preferences := {"resolution": 1, "fullscreen": false, "quality": 1, "volume": 1.0, "sensitivity": 1.0}
 
 func _ready() -> void:
 	_configure_inputs()
@@ -111,6 +112,7 @@ func _ready() -> void:
 		if onboarding_enabled:
 			career.start_setup()
 	_camera_frame(1.0)
+	_load_preferences()
 	_refresh_quality()
 	_refresh_environment(0.16)
 	hud.update_bridge(simulation.construction, career.authority.works.road_closed)
@@ -244,8 +246,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("load_game"):
 		_load(true)
 	elif event.is_action_pressed("quality"):
-		quality = (quality + 1) % QUALITY.size()
-		_refresh_quality()
+		preferences.quality = (quality + 1) % QUALITY.size()
+		apply_preferences()
 	elif event.is_action_pressed("focus"):
 		focus = not focus
 		_refresh_quality()
@@ -278,7 +280,7 @@ func _configure_inputs() -> void:
 		InputMap.action_add_event(action, event)
 
 func _camera_frame(delta: float) -> void:
-	target_yaw = wrapf(target_yaw + Input.get_axis("orbit_left", "orbit_right") * 1.34 * delta, -PI, PI)
+	target_yaw = wrapf(target_yaw + Input.get_axis("orbit_left", "orbit_right") * 1.34 * float(preferences.sensitivity) * delta, -PI, PI)
 	yaw = lerp_angle(yaw, target_yaw, 1.0 - exp(-10.0 * delta))
 	distance = lerpf(distance, target_distance, 1.0 - exp(-9.0 * delta))
 	var radial := Vector3(sin(yaw), 0, cos(yaw))
@@ -398,6 +400,37 @@ func _refresh_environment(delta: float) -> void:
 	hud.region_title.text = RealmWorld.PLACES[location].name if in_bruma or location == "forest" else "Ruína da Serra" if underground else "Brumária" if on_frontier else "Vale do Amieiro"
 	hud.update_clock(simulation.clock,
 		region.seasons.name_for(day, region.latitude), climate)
+
+func _load_preferences() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://preferences.cfg") != OK:
+		return
+	preferences.resolution = int(LifeCatalog.number(config.get_value("game", "resolution", 1), 1, 0, 2))
+	preferences.quality = int(LifeCatalog.number(config.get_value("game", "quality", 1), 1, 0, 2))
+	preferences.fullscreen = config.get_value("game", "fullscreen", false) == true
+	preferences.volume = LifeCatalog.number(config.get_value("game", "volume", 1.0), 1.0, 0.0, 1.0)
+	preferences.sensitivity = LifeCatalog.number(config.get_value("game", "sensitivity", 1.0), 1.0, 0.4, 2.0)
+	_apply_preferences()
+
+func apply_preferences() -> void:
+	_apply_preferences()
+	var config := ConfigFile.new()
+	for id in preferences:
+		config.set_value("game", id, preferences[id])
+	var result := config.save("user://preferences.cfg")
+	if result != OK:
+		hud.show_message("Configurações aplicadas, mas não gravadas.")
+
+func _apply_preferences() -> void:
+	quality = preferences.quality
+	_refresh_quality()
+	AudioServer.set_bus_volume_linear(0, preferences.volume)
+	if DisplayServer.get_name() == "headless":
+		return
+	var window := get_window()
+	window.mode = Window.MODE_FULLSCREEN if preferences.fullscreen else Window.MODE_WINDOWED
+	if not preferences.fullscreen:
+		window.size = [Vector2i(960, 540), Vector2i(1280, 720), Vector2i(1600, 900)][preferences.resolution]
 
 func _refresh_quality() -> void:
 	get_viewport().msaa_3d = Viewport.MSAA_DISABLED if quality == 0 else Viewport.MSAA_2X if quality == 1 else Viewport.MSAA_4X

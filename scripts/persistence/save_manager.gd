@@ -39,7 +39,10 @@ func list_slots() -> Array[Dictionary]:
 		var life: Variant = career.get("life") if career is Dictionary else null
 		var profile: Variant = life.get("profile") if life is Dictionary else null
 		var label: String = profile.name if profile is Dictionary and profile.get("name") is String else "Partida anterior"
-		slots.append({"path": path, "label": label.left(40), "recover": recovering})
+		slots.append({"path": path, "label": label.left(40), "recover": recovering,
+			"modified": FileAccess.get_modified_time(path + ".previous" if recovering else path)})
+	slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a.modified > b.modified if a.modified != b.modified else a.path < b.path)
 	return slots
 
 func _slot_filename(filename: String) -> bool:

@@ -23,6 +23,7 @@ const GOODS := {
 	"wood": ["Madeira", "Material", 1.0, 0, 4],
 	"stone": ["Pedra", "Material", 1.4, 0, 5],
 	"iron": ["Ferro", "Material", 0.9, 0, 9],
+	"fish": ["Peixe de rio", "Comida", 0.35, 0, 5],
 	"wheat": ["Trigo", "Cultivo", 0.25, 0, 4],
 	"herb": ["Erva medicinal", "Cultivo", 0.15, 0, 5],
 	"seed": ["Sementes de trigo", "Cultivo", 0.05, 0, 2],
