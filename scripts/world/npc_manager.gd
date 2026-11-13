@@ -7,6 +7,7 @@ const STATES := {"IDLE": "Em pausa", "WALKING": "A caminho", "WORKING": "Trabalh
 const LUNCH := Vector3(-4.72, 0.10, -2.80)
 var plans: Array[Dictionary] = []
 var world: WorldSimulation
+var society: TownSociety
 var last_social := -30.0
 var last_watch := -1
 
@@ -128,7 +129,7 @@ func arrived(plan: Dictionary) -> void:
 				plan.detail = "Pausa para comer"
 				return
 			if plan.wait == 0.0:
-				if world.economy.buy(world.clock, plan.name):
+				if _buy_food(plan):
 					plan.hunger = 0.08
 				plan.fatigue = maxf(0.0, plan.fatigue - 0.32)
 				plan.meal_day = world.clock.total_day()
@@ -141,6 +142,15 @@ func arrived(plan: Dictionary) -> void:
 				world.economy.journal.record(world.clock, "watch", "%s reforçou a vigia do rio durante a chuva." % plan.name)
 		"job":
 			_work_at_stop(plan)
+
+func _buy_food(plan: Dictionary) -> bool:
+	if society != null and (society.people[plan.id].meal == world.clock.total_day() or not society.afford_food(plan.id)):
+		return false
+	if not world.economy.buy(world.clock, plan.name):
+		return false
+	if society != null:
+		society.buy_food(plan.id, world.clock.total_day())
+	return true
 
 func _work_at_stop(plan: Dictionary) -> void:
 	if not plan.pending:
@@ -164,6 +174,8 @@ func _work_at_stop(plan: Dictionary) -> void:
 		return
 	var economy := world.economy
 	var index: int = plan.index
+	if society != null and (not plan.worker or index != 2):
+		society.work(plan.id, world.clock.total_day())
 	match plan.role:
 		"builder":
 			if index == 0:
@@ -186,14 +198,16 @@ func _work_at_stop(plan: Dictionary) -> void:
 		"carrier":
 			match index:
 				0: economy.pick_wheat(world.clock)
-				1: economy.deliver_wheat(world.clock)
+				1:
+					if economy.deliver_wheat(world.clock) and society != null:
+						society.procurement("trade", "farm", 2)
 				2: economy.pick_forge_supply(world.clock)
 				3: economy.deliver_forge_supply(world.clock)
 				4: economy.deliver_tools(world.clock)
 			plan.detail = "Cumpre as encomendas do vale"
 		"resident":
 			if index == 1:
-				economy.buy(world.clock, plan.name)
+				_buy_food(plan)
 			plan.detail = "Visita a praça e os comércios"
 		"guard":
 			plan.detail = "Patrulha as travessias"

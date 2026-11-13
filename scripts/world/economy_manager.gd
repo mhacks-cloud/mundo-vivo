@@ -100,10 +100,10 @@ func act(game: Node3D, id: String, verb: String) -> String:
 	var job: Dictionary = contracts.get(id, {})
 	var day: int = game.simulation.clock.total_day()
 	if verb == "economy_accept":
-		if not job.is_empty() or not _debit(game, order.region, int(order.pay)):
+		if not available(id, day) or not _debit(game, order.region, int(order.pay)):
 			return "Contrato indisponível ou sem orçamento."
 		contracts[id] = {"state": "ACEITO", "ends": day + int(order.days), "reserve": int(order.pay),
-			"uid": life.profile.uid, "done": 0}
+			"uid": life.profile.uid, "done": 0, "reopen": day + int(order.get("repeat_days", 0))}
 		_note("Pedido aceito · " + order.issuer)
 		return "Pagamento reservado pelo contratante."
 	if job.get("uid") != life.profile.uid or job.get("state") not in ["ACEITO", "EM_ANDAMENTO"] or day >= int(job.ends):
@@ -149,8 +149,15 @@ func act(game: Node3D, id: String, verb: String) -> String:
 	job.state = "CONCLUÍDO"
 	if order.region != "vale":
 		diplomacy.change(4, "Fornecedor cumpriu pedido em Brumária")
+	game.society.civic_reputation[order.region] = int(game.society.civic_reputation.get(order.region, 0)) + 1
+	game.society.note(order.issuer + " recebeu a encomenda de " + life.profile.name + ".")
 	_note("Pedido concluído · " + order.issuer)
 	return "Entrega concluída e paga."
+
+func available(id: String, day: int) -> bool:
+	var job: Dictionary = contracts.get(id, {})
+	return job.is_empty() or (int(rules.contracts[id].get("repeat_days", 0)) > 0
+		and job.state in ["CONCLUÍDO", "FALHOU", "CANCELADO"] and day >= int(job.reopen))
 
 func _debit(game: Node3D, region: String, value: int) -> bool:
 	var balance: int = game.career.life.treasury if region == "vale" else game.realms.world.treasury
@@ -192,6 +199,7 @@ func restore(data: Variant) -> void:
 			if job is Dictionary and job.get("uid") is String and job.get("state") in ["ACEITO", "EM_ANDAMENTO", "CONCLUÍDO", "FALHOU", "CANCELADO"]:
 				contracts[id] = {"state": job.state, "uid": job.uid.left(32),
 					"ends": int(LifeCatalog.number(job.get("ends"), 0, 0, 3650000)),
+					"reopen": int(LifeCatalog.number(job.get("reopen"), int(LifeCatalog.number(job.get("ends"), 0, 0, 3650000)) + 1, 0, 3650000)),
 					"done": int(LifeCatalog.number(job.get("done"), 0, 0, rules.contracts[id].quantity)),
 					"reserve": int(rules.contracts[id].pay) if job.state in ["ACEITO", "EM_ANDAMENTO"] else 0}
 	if data.get("deliveries") is Dictionary:

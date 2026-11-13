@@ -322,6 +322,21 @@ func open(next_page: String) -> void:
 				_action(option.name + price, "royal", id)
 			for index in range(works.decisions.size() - 1, maxi(-1, works.decisions.size() - 5), -1):
 				_body_text(works.decisions[index])
+		"society":
+			_reset(next_page, "SOCIEDADE", "Vida nas cidades")
+			var game: Node3D = service.game
+			var town: TownSociety = game.society
+			var realm: RealmWorld = game.realms.world
+			_body_text("Vale · %d moradores, %d lares e %d postos" % [town.people.size(), town.families.size(), TownSociety.EMPLOYERS.size()])
+			_body_text("Satisfação · Vale %d%% / Alto da Bruma %d%%" % [town.satisfaction(game, "vale"), town.satisfaction(game, "capital")])
+			_body_text("Alto da Bruma · %d habitantes · %d moradia nova" % [realm.population, realm.houses])
+			for id in TownSociety.SHOPS:
+				var shop: Dictionary = town.shops[id]
+				_body_text("%s · caixa %d · salários pagos %d" % [TownSociety.SHOPS[id], shop.cash, shop.wages])
+			_body_text("Reputação de fornecimento · Vale %d / Entreposto %d / Capital %d" % [
+				town.civic_reputation.get("vale", 0), town.civic_reputation.get("frontier", 0), town.civic_reputation.get("capital", 0)])
+			for i in range(town.news.size() - 1, maxi(-1, town.news.size() - 6), -1):
+				_body_text(town.news[i])
 		"economy":
 			_reset(next_page, "ECONOMIA E DIPLOMACIA", "Balanço regional")
 			var game: Node3D = service.game
@@ -346,7 +361,7 @@ func open(next_page: String) -> void:
 				var job: Dictionary = markets.contracts.get(id, {})
 				_body_text("%s · %d × %s · %d ouro\nOrigem sugerida: %s\n%s · %s" % [order.issuer, order.quantity, LifeCatalog.label(order.item),
 					order.pay, order.source, job.get("state", "DISPONÍVEL"), "Prazo: dia %d" % job.ends if job.has("ends") else "Prazo: %d dias" % order.days])
-				if job.is_empty():
+				if markets.available(id, day):
 					_action("Aceitar pedido", "economy_accept", id)
 				elif job.state in ["ACEITO", "EM_ANDAMENTO"]:
 					_action("Entregar produtos da bolsa", "economy_deliver", id)
@@ -359,7 +374,7 @@ func open(next_page: String) -> void:
 			var realm: RealmWorld = service.game.realms.world
 			_body_text("%d inspeções · tarifa de %d ouro por frete" % [realm.customs, realm.tariff(service.game.simulation.clock.total_day())])
 			if not realm.shipment.is_empty():
-				_body_text("Aldo · %s · %d trigos (%.2f kg)" % [realm.shipment.status.to_lower(), realm.shipment.quantity, realm.shipment.weight])
+				_body_text("Aldo · %s · %d × %s (%.2f kg)" % [realm.shipment.status.to_lower(), realm.shipment.quantity, LifeCatalog.label(realm.shipment.item), realm.shipment.weight])
 				if not realm.shipment.escort:
 					_action("Assinar escolta da Companhia · 9 ouro", "bruma_escort", "")
 				else:
@@ -377,7 +392,7 @@ func open(next_page: String) -> void:
 			var cargo: Dictionary = realm.shipment
 			if not cargo.is_empty():
 				var road := "caminho alto" if cargo.route == "ridge" else "estrada da encosta"
-				_body_text("Aldo · %s · %d trigos · %s" % [cargo.status.to_lower(), cargo.quantity, road])
+				_body_text("Aldo · %s · %d × %s · %s" % [cargo.status.to_lower(), cargo.quantity, LifeCatalog.label(cargo.item), road])
 			_body_text("Entregas: %d · inspeções: %d · demanda diária: %d trigos" % [
 				realm.deliveries, realm.customs, 2 if realm.population >= 7 else 1])
 			for index in range(realm.journal.size() - 1, maxi(-1, realm.journal.size() - 5), -1):

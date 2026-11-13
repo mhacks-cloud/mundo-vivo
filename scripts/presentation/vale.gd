@@ -18,6 +18,7 @@ var onboarding_enabled := true
 var career := ValeLife.new()
 var realms := ValeRealms.new()
 var markets := EconomyManager.new()
+var society := TownSociety.new()
 var diorama := ValeDiorama.new()
 var player := PixelActor.new()
 var people: Array[PixelActor] = []
@@ -98,6 +99,8 @@ func _ready() -> void:
 	career.setup(self)
 	add_child(realms)
 	realms.setup(self)
+	residents.society = society
+	interactions.register("Praça · Feira da Colheita", Vector3(0.9, 0.1, 3.4), _visit_fair, 1.45)
 	realms.world.diplomacy = markets.diplomacy
 	if onboarding_enabled and save_path == SaveManager.PATH:
 		_reset_people()
@@ -133,6 +136,7 @@ func _physics_process(delta: float) -> void:
 	career.physics(delta)
 	if career.active():
 		markets.tick(self)
+		society.advance(self)
 	realms.tick(delta)
 	var input := Vector2.ZERO if career.authority.detained() or realms.map.visible else Input.get_vector("left", "right", "up", "down")
 	var right := camera.global_basis.x
@@ -213,6 +217,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K and not realms.map.visible:
 			career.ui.open("economy")
+			return
+		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_U and not realms.map.visible:
+			career.ui.open("society")
 			return
 		if realms.map.visible:
 			if event.is_action_pressed("ui_cancel"):
@@ -498,6 +505,12 @@ func _bridge_card() -> void:
 	var required := "Travessia aberta." if bridge.complete() else "Próximo recurso: " + bridge.required_item() + "."
 	hud.inspect("Ponte Nova", bridge.status(), required + "\nCanteiro · " + simulation.economy.stock.summary("site"))
 
+func _visit_fair() -> void:
+	if not career.active() or not society.fair_open(simulation.clock):
+		hud.show_message("Feira da Colheita · dia 11 de cada estação, das 08:00 às 19:00.")
+		return
+	hud.show_message("Ração comprada por 2 ouro." if society.buy_fair(career.life, simulation.clock) else "A feira está sem rações, ou falta espaço ou ouro.")
+
 func _talk(plan: Dictionary) -> void:
 	var person := people[residents.plans.find(plan)]
 	person.face(player.position - person.position)
@@ -551,6 +564,7 @@ func _save() -> void:
 	state["career"] = career.snapshot()
 	state["realms"] = realms.world.snapshot()
 	state["regional_economy"] = markets.snapshot()
+	state["society"] = society.snapshot()
 	state["written_unix"] = Time.get_unix_time_from_system()
 	state["player"] = [player.position.x, player.position.y, player.position.z]
 	var result := saves.write_state(state, save_path)
@@ -566,6 +580,7 @@ func _load(show_feedback: bool, source := "") -> bool:
 	career.restore(state.get("career"))
 	realms.restore(state.get("realms"))
 	markets.restore(state.get("regional_economy"))
+	society.restore(state.get("society"))
 	simulation.economy.dry = markets.drought
 	if career.active() and not career.life.profile.has("uid"):
 		career.life.profile.uid = save_path.sha256_text().left(32)

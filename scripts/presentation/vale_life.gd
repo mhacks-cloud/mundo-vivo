@@ -62,6 +62,7 @@ func new_game() -> void:
 	game.save_path = path
 	game.realms.reset()
 	game.markets.restore(null)
+	game.society.restore(null)
 	start_setup()
 
 func open_save(entry: Dictionary) -> void:

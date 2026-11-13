@@ -102,7 +102,7 @@ func _rock(at: Vector3, width: float, height: float) -> void:
 		Vector3(0.16, rng.randf_range(-PI, PI), 0.23))
 
 func sync(world: RealmWorld) -> void:
-	var key := "%s:%s:%s" % [world.damaged, world.houses, world.project.get("done", 0)]
+	var key := "%s:%s:%s:%s:%s" % [world.damaged, world.houses, world.workshop, world.project.get("id", ""), world.project.get("done", 0)]
 	if key == work_key:
 		return
 	work_key = key
@@ -123,6 +123,9 @@ func sync(world: RealmWorld) -> void:
 		set_meta("built_hamlet", true)
 		house(RealmWorld.HAMLET + Vector3(1.05, 0, -1.6), 2.85, 2.25, 1.95, "sage", "slateroof", "teal", "Pouso da Geada")
 		batch_root = worksite
+	if world.workshop and not has_meta("built_workshop"):
+		set_meta("built_workshop", true)
+		house(RealmWorld.WORKS.workshop.at + Vector3(0.7, 0, -1.7), 2.7, 2.1, 1.9, "sage", "slateroof", "teal", "Oficina do Pouso")
 	_flush()
 	ground.set_shader_parameter("footprints", footprints)
 	batch_root = null

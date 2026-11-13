@@ -2,7 +2,7 @@ config_version=5
 
 [application]
 config/name="Mundo Vivo"
-config/version="4.4.0"
+config/version="4.5.0-dev"
 run/main_scene="res://scenes/vale.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/description="Um diorama medieval explorável e inteiramente offline."
