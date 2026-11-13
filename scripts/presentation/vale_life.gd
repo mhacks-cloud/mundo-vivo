@@ -61,6 +61,7 @@ func new_game() -> void:
 		return
 	game.save_path = path
 	game.realms.reset()
+	game.markets.restore(null)
 	start_setup()
 
 func open_save(entry: Dictionary) -> void:
@@ -330,6 +331,8 @@ func _near_plot() -> bool:
 	return not plot.is_empty() and game.player.position.distance_squared_to(Homestead.center(plot, Vector2i(2, 2))) <= 8.2 * 8.2
 
 func _near_station(station: String) -> bool:
+	if game.realms.world.active and station == "forge":
+		return game.player.position.distance_to(Vector3(61.9, 0.1, 44.5)) <= 2.6
 	return STATIONS.has(station) and game.player.position.distance_squared_to(STATIONS[station]) <= 2.55 * 2.55
 
 func _open_store() -> bool:
@@ -348,6 +351,8 @@ func open_near(page: String) -> void:
 func perform(verb: String, id: String) -> String:
 	if not active():
 		return "Registre seu personagem."
+	if verb.begins_with("economy_"):
+		return game.markets.act(game, id, verb)
 	if verb.begins_with("bruma_"):
 		return game.realms.perform(verb, id)
 	if verb.begins_with("secret_") or verb in ["royal", "fine"]:
@@ -358,7 +363,7 @@ func perform(verb: String, id: String) -> String:
 		"unequip": success = life.unequip(id)
 		"discard": success = life.discard(id, 1)
 		"store", "take": success = _near_plot() and life.transfer(id, 1, verb == "store")
-		"buy": success = _open_store() and (life.buy_wheat(game.simulation.economy.stock) if id == "wheat" else life.buy(id, 1))
+		"buy": success = _open_store() and (life.buy_wheat(game.simulation.economy.stock, game.markets.quote(game, "vale", "wheat")) if id == "wheat" else life.buy(id, 1))
 		"sell": success = _open_store() and life.sell(id, 1, game.simulation.economy.stock)
 		"craft":
 			var recipe: Dictionary = LifeCatalog.RECIPES.get(id, {})

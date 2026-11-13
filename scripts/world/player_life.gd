@@ -169,8 +169,8 @@ func buy(id: String, quantity: int) -> bool:
 	logbook("−%d ouro · %s ×%d" % [price, LifeCatalog.label(id), quantity])
 	return true
 
-func buy_wheat(village: VillageInventory) -> bool:
-	var price: int = LifeCatalog.GOODS.wheat[4]
+func buy_wheat(village: VillageInventory, price: int = 4) -> bool:
+	price = maxi(1, price)
 	if profile.is_empty() or gold < price or not bag.can_add("wheat", 1) or not village.spend("market", {"trigo": 1}):
 		return false
 	bag.add("wheat", 1)

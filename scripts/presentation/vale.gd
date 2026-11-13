@@ -17,6 +17,7 @@ var save_path := SaveManager.PATH
 var onboarding_enabled := true
 var career := ValeLife.new()
 var realms := ValeRealms.new()
+var markets := EconomyManager.new()
 var diorama := ValeDiorama.new()
 var player := PixelActor.new()
 var people: Array[PixelActor] = []
@@ -97,6 +98,7 @@ func _ready() -> void:
 	career.setup(self)
 	add_child(realms)
 	realms.setup(self)
+	realms.world.diplomacy = markets.diplomacy
 	if onboarding_enabled and save_path == SaveManager.PATH:
 		_reset_people()
 		career.start_menu()
@@ -129,6 +131,8 @@ func _physics_process(delta: float) -> void:
 	if not career.setup_stage.is_empty():
 		return
 	career.physics(delta)
+	if career.active():
+		markets.tick(self)
 	realms.tick(delta)
 	var input := Vector2.ZERO if career.authority.detained() or realms.map.visible else Input.get_vector("left", "right", "up", "down")
 	var right := camera.global_basis.x
@@ -206,6 +210,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_P:
 			career.ui.hide_panel()
 			realms.map.toggle()
+			return
+		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K and not realms.map.visible:
+			career.ui.open("economy")
 			return
 		if realms.map.visible:
 			if event.is_action_pressed("ui_cancel"):
@@ -543,6 +550,7 @@ func _save() -> void:
 	state["residents"] = residents.snapshot()
 	state["career"] = career.snapshot()
 	state["realms"] = realms.world.snapshot()
+	state["regional_economy"] = markets.snapshot()
 	state["written_unix"] = Time.get_unix_time_from_system()
 	state["player"] = [player.position.x, player.position.y, player.position.z]
 	var result := saves.write_state(state, save_path)
@@ -557,6 +565,8 @@ func _load(show_feedback: bool, source := "") -> bool:
 	simulation.restore(state)
 	career.restore(state.get("career"))
 	realms.restore(state.get("realms"))
+	markets.restore(state.get("regional_economy"))
+	simulation.economy.dry = markets.drought
 	if career.active() and not career.life.profile.has("uid"):
 		career.life.profile.uid = save_path.sha256_text().left(32)
 	var stamp: Variant = state.get("written_unix")

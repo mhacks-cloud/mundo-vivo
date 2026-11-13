@@ -111,6 +111,10 @@ class Atlas extends Control:
 			var weather := climate.sample(clock.total_day(), clock.hour())
 			lines.append("%s · %d °C" % [weather.weather, roundi(weather.temperature)])
 		lines.append("")
+		var markets: EconomyManager = game.markets
+		lines.append("Diplomacia · " + markets.diplomacy.label())
+		if world.selected in ["vale", "frontier", "capital"]:
+			lines.append("Trigo · %d ouro · %d em estoque" % [markets.quote(game, world.selected, "wheat"), markets.amount(game, world.selected, "wheat")])
 		lines.append("Rotas")
 		for id in RealmWorld.ROUTES:
 			var route: Dictionary = RealmWorld.ROUTES[id]

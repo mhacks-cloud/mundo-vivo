@@ -322,10 +322,42 @@ func open(next_page: String) -> void:
 				_action(option.name + price, "royal", id)
 			for index in range(works.decisions.size() - 1, maxi(-1, works.decisions.size() - 5), -1):
 				_body_text(works.decisions[index])
+		"economy":
+			_reset(next_page, "ECONOMIA E DIPLOMACIA", "Balanço regional")
+			var game: Node3D = service.game
+			var markets: EconomyManager = game.markets
+			var region := markets.location(game)
+			var day: int = game.simulation.clock.total_day()
+			_body_text(RealmWorld.PLACES[region].name + " · " + markets.diplomacy.label())
+			_body_text("Tesouros · Amieiro %d / Brumária %d ouro" % [life.treasury, game.realms.world.treasury])
+			_body_text("Tarifa serrana · %d ouro por carga" % game.realms.world.tariff(day))
+			if region == "capital":
+				_body_text("Desde o início · %d ferros extraídos / %d trigos consumidos" % [game.realms.world.mining_total, game.realms.world.wheat_consumed])
+			var goods: Array = RealmWorld.GOODS if region == "capital" else FrontierTrade.GOODS if region == "frontier" else ["wheat", "herb"]
+			for id in goods:
+				_body_text("%s · %d em estoque · %d ouro" % [LifeCatalog.label(id), markets.amount(game, region, id), markets.quote(game, region, id)])
+			for id in RealmDiplomacy.TERMS:
+				if markets.diplomacy.active(id, day):
+					_body_text("%s · até dia %d" % [RealmDiplomacy.TERMS[id], markets.diplomacy.treaties[id].ends])
+			for id in markets.rules.contracts:
+				var order: Dictionary = markets.rules.contracts[id]
+				if order.region != region:
+					continue
+				var job: Dictionary = markets.contracts.get(id, {})
+				_body_text("%s · %d × %s · %d ouro\nOrigem sugerida: %s\n%s · %s" % [order.issuer, order.quantity, LifeCatalog.label(order.item),
+					order.pay, order.source, job.get("state", "DISPONÍVEL"), "Prazo: dia %d" % job.ends if job.has("ends") else "Prazo: %d dias" % order.days])
+				if job.is_empty():
+					_action("Aceitar pedido", "economy_accept", id)
+				elif job.state in ["ACEITO", "EM_ANDAMENTO"]:
+					_action("Entregar produtos da bolsa", "economy_deliver", id)
+					_action("Cancelar pedido", "economy_cancel", id)
+			for lines in [markets.history, markets.diplomacy.history]:
+				for i in range(lines.size() - 1, maxi(-1, lines.size() - 4), -1):
+					_body_text(lines[i])
 		"bruma_customs":
 			_reset(next_page, "PORTÃO DE BRUMÁRIA", "Guarda da fronteira")
 			var realm: RealmWorld = service.game.realms.world
-			_body_text("%d inspeções · tarifa de %d ouro por frete" % [realm.customs, RealmWorld.ROUTES[realm.route()].cost])
+			_body_text("%d inspeções · tarifa de %d ouro por frete" % [realm.customs, realm.tariff(service.game.simulation.clock.total_day())])
 			if not realm.shipment.is_empty():
 				_body_text("Aldo · %s · %d trigos (%.2f kg)" % [realm.shipment.status.to_lower(), realm.shipment.quantity, realm.shipment.weight])
 				if not realm.shipment.escort:

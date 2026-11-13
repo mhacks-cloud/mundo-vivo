@@ -31,6 +31,7 @@ func setup(vale: Node3D) -> void:
 	game.interactions.register("Portão oeste · voltar à fronteira", RealmWorld.GATE, func() -> void: travel(false), 1.9)
 	game.interactions.register("Guarda da fronteira · taxas e inspeções", RealmWorld.GATE + Vector3(2.8, 0, 1.5), _customs, 1.45)
 	game.interactions.register("Coroa de Brumária · Rainha Elira", RealmWorld.HALL, func() -> void: game.career.ui.open("bruma_works"), 2.0)
+	game.interactions.register("Forja de Alto da Bruma", Vector3(61.9, 0.1, 44.5), func() -> void: game.career.ui.open("forge"), 1.8)
 	game.interactions.register("Mercado de Alto da Bruma", RealmWorld.MARKET, func() -> void: game.career.ui.open("bruma_market"), 2.0)
 	game.interactions.register("Pedreira do Sino · extrair ferro por 2 ouro", RealmWorld.MINE, _mine, 1.8)
 	game.interactions.register("Pouso da Geada · consultar ocupação", Vector3(100, 0, 100), _visit_hamlet, 2.0)

@@ -74,6 +74,17 @@ func dispatch(life: PlayerLife, day: int, detour := false) -> bool:
 	life.logbook("Frete para Brumária · 3 trigos carregados")
 	return true
 
+func dispatch_relief(village: VillageInventory, day: int, detour: bool) -> bool:
+	var reserved := freight_pay(detour)
+	if not shipment.is_empty() or day <= last_day or purse < reserved or not village.spend("market", {"trigo": BATCH}):
+		return false
+	purse -= reserved
+	last_day = day
+	shipment = {"quantity": BATCH, "pay": reserved, "position": ORIGIN, "risk": 0 if day % 3 == 2 else 2,
+		"guard": 3, "raider": 31.0, "owner": "", "origin": "relief:%d" % day, "owner_name": "Banca de Lina", "relief": true}
+	_record("A banca separou três trigos para o acordo de abastecimento.")
+	return true
+
 func arrive(life: PlayerLife) -> bool:
 	if shipment.is_empty() or shipment.position.distance_squared_to(DESTINATION) > 0.4 * 0.4:
 		return false
@@ -83,11 +94,14 @@ func arrive(life: PlayerLife) -> bool:
 	var payment: int = shipment.pay
 	stock.wheat += quantity
 	shortages = maxi(0, shortages - 1)
-	life.gold += payment
+	if shipment.get("relief") == true:
+		life.market_cash += payment
+	else:
+		life.gold += payment
 	deliveries += 1
 	shipment.clear()
 	_record("Frete entregue · %d trigos · %d ouro" % [quantity, payment])
-	life.logbook("Carroça chegou a Brumária · +%d ouro" % payment)
+	life.logbook("Carroça chegou a Brumária · %d ouro pagos ao fornecedor" % payment)
 	return true
 
 func lose(now: float) -> bool:
@@ -164,7 +178,7 @@ func restore(data: Variant) -> void:
 				"risk": int(LifeCatalog.number(load_state.get("risk"), 2, 0, 2)),
 				"guard": int(LifeCatalog.number(load_state.get("guard"), 3, 0, 3)),
 				"raider": LifeCatalog.number(load_state.get("raider"), 31.0, 0, 31.0),
-				"owner": str(load_state.get("owner", "")).left(80), "owner_name": str(load_state.get("owner_name", "")).left(40),
+				"relief": load_state.get("relief") == true, "owner": str(load_state.get("owner", "")).left(80), "owner_name": str(load_state.get("owner_name", "")).left(40),
 				"origin": str(load_state.get("origin", "legacy:%d" % last_day)).left(96)}
 	var fallen: Variant = data.get("loot")
 	if fallen is Dictionary and int(LifeCatalog.number(fallen.get("quantity"), 0, 0, BATCH)) > 0 and fallen.get("position") is Array and fallen.position.size() == 2:

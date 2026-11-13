@@ -1,0 +1,13 @@
+{
+  "interval_seconds": 2.0,
+  "price_floor": 0.75,
+  "price_ceiling": 1.8,
+  "scarcity_per_unit": 0.055,
+  "dry_humidity": 0.36,
+  "contracts": {
+    "harvest": {"issuer": "Taberna da Raposa", "region": "vale", "source": "Vale do Amieiro", "item": "wheat", "quantity": 4, "pay": 18, "days": 3},
+    "medicine": {"issuer": "Intendência do Vale", "region": "vale", "source": "Vale do Amieiro", "item": "health", "quantity": 2, "pay": 29, "days": 3},
+    "furniture": {"issuer": "Entreposto de Brumária", "region": "frontier", "source": "Vale do Amieiro", "item": "chair", "quantity": 2, "pay": 30, "days": 4},
+    "smith": {"issuer": "Coroa de Brumária", "region": "capital", "source": "Alto da Bruma", "item": "hoe", "quantity": 1, "pay": 20, "days": 3}
+  }
+}

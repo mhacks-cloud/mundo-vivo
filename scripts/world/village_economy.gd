@@ -7,6 +7,7 @@ const FORGE_HOURS := "07:00–18:00"
 var stock := VillageInventory.new()
 var journal := VillageJournal.new()
 var crop := 4
+var dry := false
 var crop_due := 0.0
 var demand := 0
 var last_forge := -90.0
@@ -21,7 +22,7 @@ func farm(clock: WorldClock, wet: bool) -> String:
 			return CROP_NAMES[crop - 1]
 		2:
 			crop = 3
-			crop_due = clock.elapsed + (27.0 if demand > 0 else 44.0)
+			crop_due = clock.elapsed + (27.0 if demand > 0 else 44.0) * (1.45 if dry else 1.0)
 			return "A chuva regou a horta" if wet else "Rega os canteiros"
 		3, 4:
 			if stock.add("teresa", "trigo", 3):
