@@ -1,11 +1,11 @@
 class_name FrontierTrade
 extends RefCounted
 
-const GOODS := ["wheat", "wood", "iron", "herb", "health"]
+const GOODS := ["wheat", "wood", "iron", "herb", "health", "hoe"]
 const ORIGIN := Vector3(-1.45, 0.10, -8.80)
 const DESTINATION := Vector3(22.35, 0.10, -8.15)
 const BATCH := 3
-var stock := {"wheat": 2, "wood": 7, "iron": 15, "herb": 3, "health": 2}
+var stock := {"wheat": 2, "wood": 7, "iron": 15, "herb": 3, "health": 2, "hoe": 0}
 var purse := 120
 var treasury := 70
 var shipment: Dictionary = {}
@@ -47,6 +47,8 @@ func buy(life: PlayerLife, id: String) -> bool:
 	return true
 
 func sell(life: PlayerLife, id: String) -> bool:
+	if id in life.equipment.values() or (LifeCatalog.max_durability(id) > 0 and int(life.bag.condition.get(id, 0)) < LifeCatalog.max_durability(id)):
+		return false
 	var quote := price(id)
 	var credit := maxi(1, floori(quote * 0.4))
 	if life.profile.is_empty() or quote == 0 or purse < credit or stock[id] >= (999 if warehouse else 120) or not life.bag.spend({id: 1}):
@@ -143,7 +145,7 @@ func snapshot() -> Dictionary:
 		"history": history.duplicate(), "deliveries": deliveries, "last_day": last_day, "shortages": shortages}
 
 func restore(data: Variant) -> void:
-	stock = {"wheat": 2, "wood": 7, "iron": 15, "herb": 3, "health": 2}
+	stock = {"wheat": 2, "wood": 7, "iron": 15, "herb": 3, "health": 2, "hoe": 0}
 	purse = 120
 	treasury = 70
 	last_day = -1

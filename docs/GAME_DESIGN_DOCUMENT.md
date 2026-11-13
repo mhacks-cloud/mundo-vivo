@@ -1422,6 +1422,8 @@ Os moradores do Vale recebem do caixa do empregador ao cumprir a primeira tarefa
 
 O entreposto compra ferro serrano e a carroça usa a estrada no sentido inverso. A oficina de Tomás é financiada com rendimentos da mineração e consome ferro e madeira para abastecer o mercado. A feira retira rações da banca e só vende seu estoque. Eventos e entregas registrados aparecem no painel de sociedade.
 
+A oficina abre uma vaga que pode atrair Beatriz. A Coroa reserva materiais para a segunda casa do Pouso, e a mudança só começa após a inspeção. Depois da viagem, a residência e a população são atualizadas. A oficina paga o novo turno enquanto dispõe de insumos e orçamento.
+
 ## Economia e diplomacia jogáveis na 4.4
 
 Os mercados mantêm seus estoques anteriores. Pedidos reservam o pagamento no tesouro de origem e recebem produtos reais. Um pedido vencido ou cancelado devolve a reserva. A fronteira cobra o valor do tratado em vigor quando a caravana passa. A seca prolonga a maturação da horta, e o acordo de abastecimento pode despachar trigo da banca pela estrada. A cooperação reserva ouro para reparos físicos.

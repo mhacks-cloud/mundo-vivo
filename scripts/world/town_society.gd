@@ -20,6 +20,11 @@ var last_day := -1
 var next_poll := 0.0
 var last_houses := 0
 var last_workshop := false
+var migration := 0
+var travel_left := 0.0
+var migration_paid := -1
+var employment_misses := 0
+const MIGRATION := ["AVALIANDO_MUDANÇA", "PROCURANDO_EMPREGO", "PROCURANDO_MORADIA", "PREPARANDO_MUDANÇA", "VIAJANDO", "CHEGANDO", "ESTABELECIDO"]
 var fair_day := -1
 var fair_food := 0
 var civic_reputation: Dictionary = {}
@@ -76,10 +81,13 @@ func advance(game: Node3D) -> void:
 	if realm.workshop and not last_workshop:
 		note("Alto da Bruma · oficina de Tomás inaugurada no Pouso da Geada.")
 	last_workshop = realm.workshop
+	_advance_migration(game, day)
 	if day == last_day:
 		return
 	last_day = day
 	for id in people:
+		if id == "beatriz" and migration >= 4:
+			continue
 		var person: Dictionary = people[id]
 		var household: Dictionary = families[HOMES[id]]
 		if person.cash >= 7:
@@ -94,6 +102,51 @@ func advance(game: Node3D) -> void:
 		if fair_food == 0 and stock.spend("market", {"alimentos": 2}):
 			fair_food += 2
 		note("Vale · Feira da Colheita marcada na praça.")
+
+func _advance_migration(game: Node3D, day: int) -> void:
+	var realm: RealmWorld = game.realms.world
+	if migration == 6:
+		if migration_paid == day:
+			return
+		migration_paid = day
+		if realm.entrepreneur_cash >= WAGE and realm.stock.iron > 0 and realm.stock.wood >= 2:
+			realm.entrepreneur_cash -= WAGE
+			people.beatriz.cash += WAGE
+			employment_misses = 0
+		elif employment_misses < 3:
+			employment_misses += 1
+			if employment_misses == 3:
+				note("A oficina suspendeu o turno de Beatriz até repor os insumos.")
+		return
+	if realm.damaged or game.markets.diplomacy.relation <= -20:
+		return
+	match migration:
+		0:
+			if realm.workshop and realm.stock.wheat >= 2 and realm.entrepreneur_cash >= WAGE and people.beatriz.cash >= 2:
+				migration = 1
+		1:
+			if realm.workshop and realm.entrepreneur_cash >= WAGE:
+				migration = 2
+				note("Beatriz procurou uma vaga na oficina do Pouso.")
+		2:
+			if realm.houses >= 2:
+				migration = 3
+			elif realm.project.is_empty():
+				realm.propose("district", "Rainha Elira")
+		3:
+			if people.beatriz.cash >= 2:
+				people.beatriz.cash -= 2
+				realm.purse += 2
+				travel_left = 55.0
+				migration = 4
+		4:
+			travel_left = maxf(0.0, travel_left - INTERVAL)
+			if travel_left == 0.0:
+				migration = 5
+		5:
+			migration = 6
+			realm.population += 1
+			note("Beatriz ocupou a nova casa do Pouso e ingressou na oficina.")
 
 func fair_open(clock: WorldClock) -> bool:
 	return fair_day == clock.total_day() and clock.hour() >= 8.0 and clock.hour() < 19.0
@@ -125,12 +178,16 @@ func note(message: String) -> void:
 		news.pop_front()
 
 func snapshot() -> Dictionary:
-	return {"people": people.duplicate(true), "shops": shops.duplicate(true), "families": families.duplicate(true),
+	return {"migration": migration, "travel": travel_left, "migration_paid": migration_paid, "employment_misses": employment_misses, "people": people.duplicate(true), "shops": shops.duplicate(true), "families": families.duplicate(true),
 		"news": news.duplicate(), "day": last_day, "houses": last_houses, "workshop": last_workshop, "fair": fair_day, "fair_food": fair_food, "reputation": civic_reputation.duplicate()}
 
 func restore(data: Variant) -> void:
 	if not data is Dictionary:
 		data = {}
+	migration = clampi(_number(data, "migration", 0), 0, 6)
+	travel_left = LifeCatalog.number(data.get("travel"), 0, 0, 55)
+	migration_paid = _number(data, "migration_paid", -1)
+	employment_misses = clampi(_number(data, "employment_misses", 0), 0, 3)
 	people.clear()
 	shops.clear()
 	families.clear()

@@ -123,6 +123,9 @@ func sync(world: RealmWorld) -> void:
 		set_meta("built_hamlet", true)
 		house(RealmWorld.HAMLET + Vector3(1.05, 0, -1.6), 2.85, 2.25, 1.95, "sage", "slateroof", "teal", "Pouso da Geada")
 		batch_root = worksite
+	if world.houses >= 2 and not has_meta("built_district"):
+		set_meta("built_district", true)
+		house(Vector3(59.4, 0, 52.1), 2.6, 2.0, 1.85, "ivory", "slateroof", "teal", "Casa de Beatriz")
 	if world.workshop and not has_meta("built_workshop"):
 		set_meta("built_workshop", true)
 		house(RealmWorld.WORKS.workshop.at + Vector3(0.7, 0, -1.7), 2.7, 2.1, 1.9, "sage", "slateroof", "teal", "Oficina do Pouso")

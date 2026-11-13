@@ -10,6 +10,7 @@ var guard: PixelActor
 var driver: PixelActor
 var queen: PixelActor
 var resident: PixelActor
+var newcomer: PixelActor
 var wagon: Node3D
 var raider: PixelActor
 var scout: PixelActor
@@ -124,6 +125,14 @@ func tick(delta: float) -> void:
 	if resident.visible:
 		var goal := Vector3(58.6, 0.1, 44.4) if working else RealmWorld.HAMLET
 		_move_actor(resident, goal, right, light, delta)
+	newcomer.visible = game.society.migration >= 4
+	if newcomer.visible:
+		var destination := RealmWorld.WORKS.district.at as Vector3
+		if game.society.migration < 6:
+			destination = RealmWorld.GATE.lerp(destination, 1.0 - float(game.society.travel_left) / 55.0)
+		elif working and game.society.employment_misses < 3:
+			destination = RealmWorld.WORKS.workshop.at
+		_move_actor(newcomer, destination, right, light, delta)
 	_pose_convoy(right, light, delta)
 	_sync_loot()
 	scout.visible = not world.loot.is_empty() and not world.loot.get("salvaged", false) and clock.elapsed >= float(world.loot.expires) - 106.0
@@ -176,6 +185,8 @@ func _sync_scene() -> void:
 		scout = _actor("Batedora do Junco", RealmWorld.GATE, "65616d", 4, "carrier")
 		scout.hide()
 		queen = _actor("Rainha Elira", RealmWorld.HALL + Vector3(0.8, 0, -0.72), "826997", 4, "guard")
+		newcomer = _actor("Beatriz", RealmWorld.WORKS.district.at if game.society.migration >= 6 else RealmWorld.GATE, "787c56", 4, "resident")
+		newcomer.visible = game.society.migration >= 4
 		resident = _actor("Célia do Pouso", RealmWorld.HAMLET, "8b8e5e", 1, "carrier")
 		wagon = Node3D.new()
 		scene.add_child(wagon)

@@ -327,9 +327,10 @@ func open(next_page: String) -> void:
 			var game: Node3D = service.game
 			var town: TownSociety = game.society
 			var realm: RealmWorld = game.realms.world
-			_body_text("Vale · %d moradores, %d lares e %d postos" % [town.people.size(), town.families.size(), TownSociety.EMPLOYERS.size()])
+			_body_text("Vale · %d moradores, %d lares e %d postos" % [town.people.size() - (1 if town.migration >= 6 else 0), town.families.size() - (1 if town.migration >= 6 else 0), TownSociety.EMPLOYERS.size()])
 			_body_text("Satisfação · Vale %d%% / Alto da Bruma %d%%" % [town.satisfaction(game, "vale"), town.satisfaction(game, "capital")])
 			_body_text("Alto da Bruma · %d habitantes · %d moradia nova" % [realm.population, realm.houses])
+			_body_text("Beatriz · " + TownSociety.MIGRATION[town.migration].replace("_", " ").to_lower())
 			for id in TownSociety.SHOPS:
 				var shop: Dictionary = town.shops[id]
 				_body_text("%s · caixa %d · salários pagos %d" % [TownSociety.SHOPS[id], shop.cash, shop.wages])

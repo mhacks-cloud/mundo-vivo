@@ -14,7 +14,7 @@ Outros pontos de retomada:
 
 ## Próxima entrega · sociedade e cadeias comerciais
 
-Completar migração com vagas e habitação, integrar ferro e ferramentas em uma cadeia de dois fretes, ampliar negócios licenciáveis e adicionar contratos por estoque e projeto.
+Generalizar a mudança de Beatriz para múltiplos candidatos, fechar a cadeia entre o ferro do entreposto e as ferramentas exportadas e testar a reposição de trigo em uma campanha que começa sem estoques de demonstração.
 
 Ampliar os comboios para ferro e ferramentas, fechar os ciclos de receitas e despesas dos moradores e expandir o histórico econômico por produto.
 

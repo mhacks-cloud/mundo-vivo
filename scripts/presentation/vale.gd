@@ -151,6 +151,9 @@ func _physics_process(delta: float) -> void:
 		navigation.rebuild(diorama, simulation.construction.complete() and not career.authority.works.road_closed)
 		nav_dirty = false
 	for i in people.size():
+		if residents.plans[i].id == "beatriz" and society.migration >= 4:
+			people[i].hide()
+			continue
 		_move_resident(i, right, delta)
 	social_poll += delta
 	if social_poll >= 0.5:
@@ -578,9 +581,9 @@ func _load(show_feedback: bool, source := "") -> bool:
 		return false
 	simulation.restore(state)
 	career.restore(state.get("career"))
+	society.restore(state.get("society"))
 	realms.restore(state.get("realms"))
 	markets.restore(state.get("regional_economy"))
-	society.restore(state.get("society"))
 	simulation.economy.dry = markets.drought
 	if career.active() and not career.life.profile.has("uid"):
 		career.life.profile.uid = save_path.sha256_text().left(32)

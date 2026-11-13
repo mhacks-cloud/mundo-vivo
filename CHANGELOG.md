@@ -6,6 +6,7 @@
 - Contrato recorrente de trigo, reputação por região e notícias persistentes.
 - Frete físico de ferro na rota serrana, oficina financiada por Tomás e feira com estoque próprio.
 - Painel de sociedade e indicadores no atlas.
+- Mudança de Beatriz para o Pouso, ampliação residencial, transporte de enxadas e novos pedidos recorrentes.
 
 ## 4.4.0
 

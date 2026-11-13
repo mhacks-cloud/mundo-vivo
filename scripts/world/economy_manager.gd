@@ -130,6 +130,10 @@ func act(game: Node3D, id: String, verb: String) -> String:
 		if int(realm.stock[item]) + count > int(RealmWorld.LIMITS[item]):
 			return "O mercado está cheio."
 		realm.stock[item] += count
+	elif order.region == "vale" and item in ["iron", "food"]:
+		var stocks: VillageInventory = game.simulation.economy.stock
+		if not stocks.add("forge" if item == "iron" else "market", LifeCatalog.VILLAGE_GOODS[item], count):
+			return "O contratante está sem espaço."
 	elif order.region == "vale":
 		if amount(game, "vale", item) + count > 99:
 			return "O contratante está sem espaço."

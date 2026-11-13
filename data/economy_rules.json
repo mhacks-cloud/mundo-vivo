@@ -8,6 +8,9 @@
     "harvest": {"issuer": "Taberna da Raposa", "region": "vale", "source": "Vale do Amieiro", "item": "wheat", "quantity": 4, "pay": 18, "days": 3, "repeat_days": 3},
     "medicine": {"issuer": "Intendência do Vale", "region": "vale", "source": "Vale do Amieiro", "item": "health", "quantity": 2, "pay": 29, "days": 3},
     "furniture": {"issuer": "Entreposto de Brumária", "region": "frontier", "source": "Vale do Amieiro", "item": "chair", "quantity": 2, "pay": 30, "days": 4},
-    "smith": {"issuer": "Coroa de Brumária", "region": "capital", "source": "Alto da Bruma", "item": "hoe", "quantity": 1, "pay": 20, "days": 3}
+    "smith": {"issuer": "Coroa de Brumária", "region": "capital", "source": "Alto da Bruma", "item": "hoe", "quantity": 1, "pay": 20, "days": 3, "repeat_days": 7},
+    "iron": {"issuer": "Ferraria do Vale", "region": "vale", "source": "Brumária", "item": "iron", "quantity": 3, "pay": 13, "days": 5, "repeat_days": 7},
+    "wood": {"issuer": "Obras de Brumária", "region": "capital", "source": "Vale do Amieiro", "item": "wood", "quantity": 3, "pay": 9, "days": 5, "repeat_days": 7},
+    "food": {"issuer": "Taberna da Raposa", "region": "vale", "source": "Vale do Amieiro", "item": "food", "quantity": 3, "pay": 12, "days": 4, "repeat_days": 7}
   }
 }

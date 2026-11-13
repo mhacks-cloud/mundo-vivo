@@ -2,7 +2,9 @@
 
 A suíte de sociedade acrescenta 13 verificações. A branch de desenvolvimento entrega salários, compras e lares do elenco do Vale, o pedido recorrente de trigo, transporte de ferro, a oficina de Tomás, uma feira e notícias baseadas em eventos. Os saves 4.4 ganham campos opcionais. A oficina utiliza a equipe e as etapas de obra física de Alto da Bruma.
 
-Ainda faltam migração entre cidades e recrutamento autônomo, múltiplas empresas e novos bairros, fretes de ferramentas e demais produtos, integração do ferro transportado com a produção do Vale, mais periodicidades de contratos e atividades como pesca e culinária. A licença da oficina utiliza um terreno fixo. Ferro perdido é recuperável no local, mas a coleta clandestina serrana continua limitada ao trigo.
+A continuação liga a vaga da oficina à mudança de Beatriz e à construção de uma segunda moradia no Pouso. Há frete de enxadas e pedidos recorrentes de ferro, madeira, ferramentas e alimentos. A suíte de civilização exercita 30 dias de calendário em janelas aceleradas, com recargas periódicas. Ela inicia com oficina e estoque de demonstração. Não equivale a simular todos os turnos completos de uma campanha nova.
+
+Pendências: recrutamento e migração de múltiplos candidatos, cadeia física que leve o ferro do entreposto à oficina de destino, reposição sustentável de alimentos no cenário longo, receitas e festivais adicionais, camadas opcionais do Atlas e indicadores de desempenho. A coleta clandestina serrana continua limitada ao trigo.
 
 | Economia 4.4 | Escopo |
 | --- | --- |
