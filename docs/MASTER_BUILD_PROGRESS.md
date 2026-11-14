@@ -12,7 +12,7 @@ Base auditada: `9e11384` da 4.5. As dez suítes existentes passaram com 287 veri
 | L · Testes | Parcial | Treze suítes somaram 332 verificações sem falhas; a série de 192 dias encerrou com código 0. Benchmark headless de 300 quadros: média de 0,309 ms por quadro neste computador. Não é uma medição de FPS de renderização em hardware modesto. |
 | O · Sistema Deus | Primeira versão funcional | Poço, oito árvores e oito barris existentes possuem IDs estáveis. Interface de desenvolvimento permite mover, girar, adicionar, duplicar, remover, pintar, validar, salvar, desfazer e restaurar revisão anterior. Os saves dos jogadores são separados. Casas e estruturas com estado econômico ainda exigem comandos próprios. |
 | M · Exportação | Marco jogável | Windows e Linux x86_64 exportados com templates oficiais Godot 4.7.2. Windows iniciou em modo headless sem erros de script. A execução em Linux segue sem teste neste ambiente. |
-| N · Lançamento | Pendente | Publicação de progresso na branch. A edição definitiva depende dos critérios restantes. |
+| N · Lançamento | Progresso publicado | Mudanças na branch pública `feature/mundo-vivo-completo`. A `main` permanece na 4.4; a edição definitiva depende dos critérios restantes. |
 
 ## Apresentação visual
 

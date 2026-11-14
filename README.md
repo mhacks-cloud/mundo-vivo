@@ -118,7 +118,7 @@ Prompt do atlas
 
 ## Git
 
-O projeto de trabalho preserva o commit inicial `db18fee`. A tag `seguranca/antes-hd2d` aponta para a versão anterior. A atualização tem commit local na mesma branch. Para publicar a versão local em um repositório privado novo, a partir da pasta com o histórico Git e com a CLI autenticada, execute `gh repo create mundo-vivo --private --source=. --remote=origin --push`.
+O projeto está no repositório público [mhacks-cloud/mundo-vivo](https://github.com/mhacks-cloud/mundo-vivo). A edição offline em andamento, incluindo o Sistema Deus, fica na branch `feature/mundo-vivo-completo`; a `main` permanece na versão 4.4. O histórico inicial e as tags anteriores continuam preservados.
 
 
 ## Histórico da versão 2.0 · Atualização HD-2D
