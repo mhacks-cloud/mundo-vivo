@@ -20,6 +20,7 @@ var realms := ValeRealms.new()
 var markets := EconomyManager.new()
 var society := TownSociety.new()
 var diorama := ValeDiorama.new()
+var world_editor := WorldEditor.new(self)
 var player := PixelActor.new()
 var people: Array[PixelActor] = []
 var camera := Camera3D.new()
@@ -54,6 +55,7 @@ func _ready() -> void:
 	simulation.climate.altitude = region.altitude
 	simulation.climate.biome = region.bioma
 	offline_limit = clampf(float(region.get("limite_offline_minutos", 0.0)) * 60.0, 0.0, 7200.0)
+	diorama.edits = WorldEditStore.read()
 	add_child(diorama)
 	add_child(camera)
 	camera.current = true
@@ -62,6 +64,7 @@ func _ready() -> void:
 	_setup_light()
 	_setup_overlays()
 	add_child(hud)
+	add_child(world_editor)
 	add_child(ambience)
 	add_child(fauna)
 	_setup_sparks()
@@ -120,6 +123,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_camera_frame(delta)
+	if world_editor.active:
+		return
 	career.tick(delta)
 	if not career.setup_stage.is_empty():
 		return
@@ -133,6 +138,8 @@ func _process(delta: float) -> void:
 	hud.prompt(String(target.get("label", "")))
 
 func _physics_process(delta: float) -> void:
+	if world_editor.active:
+		return
 	if not career.setup_stage.is_empty():
 		return
 	career.physics(delta)
@@ -215,6 +222,15 @@ func _move_resident(index: int, right: Vector3, delta: float) -> void:
 	npc.set_cargo(simulation.economy.stock.first(plan.id))
 	npc.pose(movement, right, sprite_light, plan.building, plan.state)
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_F8 and world_editor.allowed():
+		if world_editor.active:
+			world_editor.close()
+		else:
+			world_editor.open()
+		return
+	if world_editor.active:
+		world_editor.handle(event)
+		return
 	if career.setup_stage.is_empty() and career.active():
 		if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_P:
 			career.ui.hide_panel()
@@ -284,7 +300,7 @@ func _camera_frame(delta: float) -> void:
 	yaw = lerp_angle(yaw, target_yaw, 1.0 - exp(-10.0 * delta))
 	distance = lerpf(distance, target_distance, 1.0 - exp(-9.0 * delta))
 	var radial := Vector3(sin(yaw), 0, cos(yaw))
-	var point := career.camera_point(player.position + Vector3.UP * 0.65 - radial * (distance * 0.09))
+	var point := world_editor.view_center if world_editor.active else career.camera_point(player.position + Vector3.UP * 0.65 - radial * (distance * 0.09))
 	follow = follow.lerp(point, 1.0 - exp(-5.2 * delta))
 	camera.position = follow + (radial * 0.868 + Vector3.UP * 0.497) * distance
 	camera.look_at(follow, Vector3.UP)
@@ -440,6 +456,8 @@ func _refresh_quality() -> void:
 	sun.shadow_blur = 2.1 if quality == 2 else 1.55
 	camera.far = [59.0, 83.0, 115.0][quality]
 	diorama.foliage.quality(quality)
+	for plant in diorama.editable_foliage:
+		plant.quality(quality)
 	diorama.set_urban_quality(quality)
 	if is_instance_valid(realms.scene):
 		realms.scene.foliage.quality(quality)
@@ -476,7 +494,7 @@ func _setup_sparks() -> void:
 	add_child(forge_sparks)
 
 func _register_landmarks() -> void:
-	interactions.register("Poço dos Fundadores", Vector3(0.8, 0.1, -0.8),
+	interactions.register("Poço dos Fundadores", diorama.editable_objects.founders_well.root.position + Vector3.UP * 0.1,
 		func() -> void: hud.show_message("A água do Amieiro é fria mesmo no auge do verão."), 2.6)
 	interactions.register("Taberna da Raposa Dourada", Vector3(-6.7, 0.10, -3.95),
 		func() -> void: hud.inspect("Raposa Dourada", "Refeições · 12:00–14:00",
