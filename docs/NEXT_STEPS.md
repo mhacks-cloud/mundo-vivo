@@ -16,7 +16,7 @@ A revisão visual preservou as rotas existentes. Medir FPS em hardware modesto e
 
 ## Próxima entrega · sociedade e cadeias comerciais
 
-Generalizar a mudança de Beatriz para múltiplos candidatos com vagas e salários reservados, fechar a cadeia entre o ferro do entreposto e as ferramentas exportadas e testar a reposição de trigo em uma campanha que começa sem estoques de demonstração.
+Generalizar a mudança de Beatriz para múltiplos candidatos com vagas e salários reservados. Ferro e madeira já viajam em carroças serranas até o entreposto, onde viram enxadas; o depósito do Vale compra essas ferramentas. Falta representar fisicamente a etapa final do frete até o Vale e testar a reposição a partir de estoques sem itens de demonstração.
 
 Ampliar os comboios para ferro e ferramentas, fechar os ciclos de receitas e despesas dos moradores e expandir o histórico econômico por produto.
 

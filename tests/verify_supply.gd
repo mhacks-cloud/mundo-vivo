@@ -23,6 +23,7 @@ func _run() -> void:
 	var days_empty := 0
 	var recovery := false
 	var lowest := 32
+	var lowest_treasury := realm.treasury
 	var saw_block := false
 	var saw_reopen := false
 	var starting_money := realm.purse + realm.treasury + trade.purse + career.life.market_cash
@@ -58,6 +59,7 @@ func _run() -> void:
 		saw_reopen = saw_reopen or (saw_block and not realm.damaged)
 		var wheat: int = realm.stock.wheat
 		lowest = mini(lowest, wheat)
+		lowest_treasury = mini(lowest_treasury, realm.treasury)
 		days_empty += 1 if wheat == 0 else 0
 		recovery = recovery or (days_empty > 0 and wheat > 0)
 		if wheat != initial_wheat + realm.deliveries * FrontierTrade.BATCH - realm.wheat_consumed:
@@ -78,7 +80,11 @@ func _run() -> void:
 	print("Abastecimento | dias=%d mínimo=%d zerados=%d recuperação=%s entregas=%d final=%d" %
 		[days, lowest, days_empty, recovery, realm.deliveries, realm.stock.wheat])
 	print("Estrada | bloqueio=%s reabertura=%s" % [saw_block, saw_reopen])
+	print("Cadeia serrana | tesouro mínimo=%d final=%d suporte interno=%d madeira exportada=%d enxadas forjadas=%d ferramentas gastas=%d" %
+		[lowest_treasury, realm.treasury, realm.market_support, realm.wood_exports, realm.tools_made, game.markets.tools_retired])
 	if realm.deliveries < 2 or realm.stock.wheat == 0 or (days >= 60 and not saw_reopen):
+		failed = true
+	if days >= 192 and (lowest_treasury <= 0 or realm.wood_exports < 3 or realm.tools_made < 1 or game.markets.tools_retired < 1):
 		failed = true
 	for suffix in ["", ".previous"]:
 		DirAccess.remove_absolute(game.save_path + suffix)

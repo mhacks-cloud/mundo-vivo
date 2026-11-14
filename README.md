@@ -1,5 +1,7 @@
 # Mundo Vivo · edição offline em desenvolvimento
 
+**Sistema Deus (desenvolvimento):** execute pelo editor Godot e pressione **F8** para selecionar, mover, girar, adicionar e remover objetos estáticos, pintar terreno, desfazer/refazer e salvar o patch da região. A simulação pausa durante a edição. Veja [controles, limites e persistência](docs/SISTEMA_DEUS.md). Os builds de jogador deixam a ferramenta desabilitada.
+
 **N** abre o diário de campanha. A margem do Amieiro permite pescar com sementes como isca. O menu principal oferece configurações persistentes. Consulte o [acompanhamento da edição offline](docs/MASTER_BUILD_PROGRESS.md) para controles e critérios pendentes.
 
 Pressione **U** para consultar a vida nas cidades, os caixas dos estabelecimentos, os salários e as notícias. A Feira da Colheita vende alimentos na praça no dia 11 de cada estação, das 08:00 às 19:00. O pedido de trigo volta ao quadro a cada três dias após o aceite anterior. Alto da Bruma exporta ferro ao entreposto quando há excedente.

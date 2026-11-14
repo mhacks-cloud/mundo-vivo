@@ -1,5 +1,12 @@
 # Changelog
 
+## Edição offline · Sistema Deus e cadeia serrana
+
+- Sistema Deus de desenvolvimento no Vale: seleção e movimentação de poços, árvores, barris e caixas, rotação, duplicação, remoção, ajuste fino, pintura de terreno e histórico de desfazer/refazer.
+- Patches regionais em arquivo próprio com IDs estáveis, backup, restauração e validação de colisões, lotes e corredores de NPCs. Builds de jogador deixam o editor desabilitado.
+- Reposição orçamentária interna do mercado serrano, reserva de caixa do entreposto, fretes físicos de ferro e madeira, forja de enxadas e compra pelo depósito do Vale.
+- Testes de campanha longa, cadeia produtiva, editor, navegação e persistência; capturas reais e benchmark headless.
+
 ## Edição offline · apresentação
 
 - Praças, caminhos, sinalização, jardins e detalhes de trabalho em quatro localidades.
