@@ -22,6 +22,11 @@ var occluded: Array[Node3D] = []
 var smoke_sources: Array[GPUParticles3D] = []
 var crop_full := Node3D.new()
 var crop_sprouts := Node3D.new()
+var edits: Dictionary = WorldEditStore.empty()
+var editable_objects: Dictionary = {}
+var editable_foliage: Array[ValeFoliage] = []
+var editable_root: Node3D
+var terrain_root := Node3D.new()
 
 func _ready() -> void:
 	rng.seed = 92451
@@ -38,6 +43,9 @@ func _ready() -> void:
 	_build_village()
 	_dress_village()
 	_ground_cover()
+	_apply_added_objects()
+	add_child(terrain_root)
+	set_terrain(edits.get("terrain", {}))
 	ground.set_shader_parameter("footprints", footprints)
 	foliage.build()
 	_flush()
@@ -112,14 +120,16 @@ func _build_village() -> void:
 	house(Vector3(4.4, 0, -17.0), 4.05, 3.5, 2.65, "stone", "roof", "teal")
 	house(Vector3(24.8, 0, -3.0), 3.8, 3.4, 2.2, "plaster", "roof", "teal")
 
-	well(Vector3(0.8, 0, -0.8))
+	_build_editable("founders_well", "well", Vector3(0.8, 0, -0.8))
 	bench(Vector3(3.8, 0, -3.72))
 	bench(Vector3(-3.9, 0, -3.72))
 	bench(Vector3(7.9, 0, 3.9))
 	for point in [Vector3(-5.7, 0, 3.55), Vector3(4.7, 0, 3.8), Vector3(8.8, 0, 3.55), Vector3(17.5, 0, 3.5), Vector3(8.3, 0, -11.0), Vector3(21.9, 0, -17.6)]:
 		lamp(point)
+	var tree_index := 0
 	for point in [Vector3(-10.8, 0, -4.9), Vector3(5.4, 0, -2.45), Vector3(6.4, 0, 5.5), Vector3(-4.8, 0, 8.7), Vector3(7.8, 0, -9.5), Vector3(-4.3, 0, -10.7), Vector3(18.6, 0, -2.7), Vector3(-11, 0, 9.1)]:
-		tree(point, rng.randf_range(0.72, 1.05), false, true)
+		_build_editable("tree_%d" % tree_index, "tree", point, rng.randf_range(0.72, 1.05))
+		tree_index += 1
 	for center in [Vector3(-3.6, 0, -4.8), Vector3(4.5, 0, -4.8), Vector3(5.8, 0, 4.8), Vector3(-5.5, 0, 5.0), Vector3(8.8, 0, -8.2), Vector3(-5, 0, 10), Vector3(17.5, 0, -1.2), Vector3(23.0, 0, -2.0)]:
 		for i in 24:
 			var p: Vector3 = center + Vector3(rng.randf_range(-1.1, 1.1), 0, rng.randf_range(-0.55, 0.55))
@@ -136,8 +146,10 @@ func _build_village() -> void:
 	_market(Vector3(7.65, 0, -0.8), "wine")
 	_market(Vector3(-7.4, 0, -1.35), "teal")
 	_cave()
+	var barrel_index := 0
 	for point in [Vector3(-3.7, 0, -5), Vector3(-9.6, 0, -4.6), Vector3(-10, 0, 5.3), Vector3(8.8, 0, -3.55), Vector3(8.6, 0, -13.5), Vector3(7.6, 0, -13.65), Vector3(17.7, 0, -13.8), Vector3(3.9, 0, 9.15)]:
-		barrel(point)
+		_build_editable("barrel_%d" % barrel_index, "barrel", point)
+		barrel_index += 1
 	for i in 5:
 		box(Vector3(6.4, 0.2 + 0.15 * (i % 2), -12.8 - i * 0.19), Vector3(2.1, 0.18, 0.18), "oak")
 
@@ -600,7 +612,7 @@ func cylinder(p: Vector3, radius: float, height: float, material: String, sides 
 	node.mesh = shape
 	node.position = p
 	node.material_override = palette.materials[material]
-	add_child(node)
+	_visual_parent().add_child(node)
 
 func sign_label(p: Vector3, value: String, size: float) -> void:
 	var sign := Label3D.new()
@@ -647,6 +659,8 @@ func _flush() -> void:
 	batches.clear()
 
 func collider(p: Vector3, size: Vector3, root: Node3D) -> StaticBody3D:
+	if editable_root != null and root == self:
+		root = editable_root
 	var body := StaticBody3D.new()
 	var hitbox := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -658,7 +672,72 @@ func collider(p: Vector3, size: Vector3, root: Node3D) -> StaticBody3D:
 	return body
 
 func _visual_parent() -> Node3D:
-	return batch_root if batch_root != null else self
+	return editable_root if editable_root != null else batch_root if batch_root != null else self
+
+func _build_editable(id: String, kind: String, at: Vector3, tree_scale := 0.9) -> void:
+	var root := Node3D.new()
+	root.name = "Edit_" + id
+	root.position = at
+	add_child(root)
+	editable_objects[id] = {"root": root, "type": kind, "base": at, "scale": tree_scale}
+	editable_root = root
+	match kind:
+		"well": well(Vector3.ZERO)
+		"tree":
+			var main_foliage := foliage
+			foliage = ValeFoliage.new()
+			root.add_child(foliage)
+			tree(Vector3.ZERO, tree_scale, false, true)
+			foliage.build()
+			editable_foliage.append(foliage)
+			foliage = main_foliage
+		"barrel": barrel(Vector3.ZERO)
+		"crate": _crate(Vector3.ZERO)
+	editable_root = null
+	var row: Dictionary = edits.get("entries", {}).get(id, {})
+	if not row.is_empty():
+		set_editable(id, Vector3(float(row.position[0]), 0, float(row.position[1])), float(row.rotation), row.state == "removed")
+
+func _apply_added_objects() -> void:
+	for id in edits.get("entries", {}):
+		if editable_objects.has(id):
+			continue
+		var row: Dictionary = edits.entries[id]
+		_build_editable(id, row.type, Vector3(float(row.position[0]), 0, float(row.position[1])))
+
+func add_editable(id: String, kind: String, at: Vector3) -> void:
+	if editable_objects.has(id) or kind not in WorldEditStore.TYPES:
+		return
+	_build_editable(id, kind, at)
+	_flush()
+
+func set_editable(id: String, at: Vector3, angle: float, removed := false) -> void:
+	if not editable_objects.has(id):
+		return
+	var root: Node3D = editable_objects[id].root
+	root.position = at
+	root.rotation.y = angle
+	root.visible = not removed
+	for body in root.find_children("*", "StaticBody3D", true, false):
+		body.collision_layer = 0 if removed else 1
+
+func set_terrain(tiles: Dictionary) -> void:
+	for child in terrain_root.get_children():
+		terrain_root.remove_child(child)
+		child.queue_free()
+	for id in tiles:
+		var parts: PackedStringArray = str(id).split("_")
+		if parts.size() != 3 or not parts[1].is_valid_int() or not parts[2].is_valid_int():
+			continue
+		var kind: String = tiles[id]
+		var mat := "grass" if kind == "grass" else "trail" if kind in ["dirt", "path"] else "mossstone" if kind == "stone" else "cobble"
+		var surface := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(1, 0.025, 1)
+		surface.mesh = mesh
+		surface.material_override = palette.materials[mat]
+		surface.position = Vector3(float(parts[1]), 0.018, float(parts[2]))
+		terrain_root.add_child(surface)
 
 func camera_visibility(from: Vector3, target: Vector3) -> bool:
 	foliage.camera_window(from, target)
@@ -690,6 +769,8 @@ func camera_visibility(from: Vector3, target: Vector3) -> bool:
 
 func weather(index: int, wet: bool, snow: bool, light: float) -> void:
 	foliage.atmosphere(index, wet)
+	for plant in editable_foliage:
+		plant.atmosphere(index, wet)
 	var tints := [Color("c7d59a"), Color("e1db9a"), Color("d9ac69"), Color("aaae9d")]
 	ground.set_shader_parameter("ground_tint", tints[index])
 	ground.set_shader_parameter("wetness", 1.0 if wet else 0.0)
