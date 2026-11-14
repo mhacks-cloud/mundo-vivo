@@ -10,6 +10,8 @@ func _run() -> void:
 		return
 	var folder := args[0]
 	DirAccess.make_dir_recursive_absolute(folder)
+	for suffix in ["", ".previous", ".tmp"]:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(WorldEditStore.PATH + suffix))
 	var game := (load("res://scenes/vale.tscn") as PackedScene).instantiate()
 	root.add_child(game)
 	game.career.new_game()
@@ -28,6 +30,20 @@ func _run() -> void:
 	game.world_editor._change("founders_well", Vector3(2.3, 0, -0.8), 0)
 	game._camera_frame(0.9)
 	await _shot(folder.path_join("Sistema Deus - Poco movido.png"))
+	game.world_editor.save()
+	game.world_editor.close()
+	game.queue_free()
+	await process_frame
+	var reopened := (load("res://scenes/vale.tscn") as PackedScene).instantiate()
+	root.add_child(reopened)
+	reopened.career.new_game()
+	reopened.career.confirm_character("Nara do Amieiro", "smith", "amieiro", 1, 1)
+	reopened.career.confirm_plot("sul-01")
+	reopened.player.position = Vector3(0.8, 0.1, 4.5)
+	reopened.target_yaw = 0.2
+	reopened.target_distance = 18
+	reopened._camera_frame(0.9)
+	await _shot(folder.path_join("Sistema Deus - Poco recarregado.png"))
 	quit()
 
 func _shot(path: String) -> void:
