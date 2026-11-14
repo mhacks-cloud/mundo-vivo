@@ -11,6 +11,7 @@ var last_day := -1
 var drought := false
 var prior_deliveries := -1
 var prior_customs := -1
+var tools_retired := 0
 
 func tick(game: Node3D) -> void:
 	var clock: WorldClock = game.simulation.clock
@@ -30,7 +31,11 @@ func tick(game: Node3D) -> void:
 		_supply_relief(game, day)
 		return
 	last_day = day
+	if day > 0 and day % 3 == 0 and game.simulation.economy.stock.spend("depot", {"ferramentas": 1}):
+		tools_retired += 1
+		_note("A horta substituiu uma enxada gasta no depósito público.")
 	bruma.forge_import(game.career.frontier, day)
+	_buy_frontier_tools(game)
 	var weather: Dictionary = game.simulation.climate.sample(day, 12.0)
 	drought = weather.humidity < float(rules.dry_humidity)
 	game.simulation.economy.dry = drought
@@ -46,6 +51,21 @@ func tick(game: Node3D) -> void:
 	if "capital" in bruma.discovered:
 		diplomacy.advance(day, life, bruma)
 	_supply_relief(game, day)
+
+func _buy_frontier_tools(game: Node3D) -> bool:
+	var frontier: FrontierTrade = game.career.frontier
+	var life: PlayerLife = game.career.life
+	var depot: VillageInventory = game.simulation.economy.stock
+	const COST := 4
+	if frontier.stock.hoe < 1 or depot.amount("depot", "ferramentas") >= 3 or life.market_cash < COST:
+		return false
+	if not depot.add("depot", "ferramentas", 1):
+		return false
+	frontier.stock.hoe -= 1
+	frontier.purse += COST
+	life.market_cash -= COST
+	_note("O depósito do Vale comprou uma enxada forjada no entreposto.")
+	return true
 
 func _supply_relief(game: Node3D, day: int) -> void:
 	var realm: RealmWorld = game.realms.world
@@ -191,7 +211,8 @@ func _note(message: String) -> void:
 
 func snapshot() -> Dictionary:
 	return {"diplomacy": diplomacy.snapshot(), "contracts": contracts.duplicate(true), "deliveries": deliveries.duplicate(true),
-		"history": history.duplicate(), "day": last_day, "dry": drought, "convoys": prior_deliveries, "customs": prior_customs}
+		"history": history.duplicate(), "day": last_day, "dry": drought, "convoys": prior_deliveries, "customs": prior_customs,
+		"tools_retired": tools_retired}
 
 func restore(data: Variant) -> void:
 	if not data is Dictionary:
@@ -205,6 +226,7 @@ func restore(data: Variant) -> void:
 	prior_deliveries = int(LifeCatalog.number(data.get("convoys"), -1, -1, 1000000))
 	prior_customs = int(LifeCatalog.number(data.get("customs"), -1, -1, 1000000))
 	drought = data.get("dry") == true
+	tools_retired = int(LifeCatalog.number(data.get("tools_retired"), 0, 0, 1000000))
 	if data.get("contracts") is Dictionary:
 		for id in rules.contracts:
 			var job: Variant = data.contracts.get(id)
